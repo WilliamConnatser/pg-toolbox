@@ -1,0 +1,37 @@
+{
+  "name": "pg-toolbox",
+  "version": "1.1.26",
+  "description": "Postgres pool Class with helper functions and scripts to migrate, rollback, and seed a Postgres database",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "pg-migrate": "./src/scripts/migrate.js",
+    "pg-rollback": "./src/scripts/rollback.js",
+    "pg-truncate": "./src/scripts/truncate.js",
+    "pg-seed": "./src/scripts/seed.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/WilliamConnatser/pg-toolbox.git"
+  },
+  "keywords": [
+    "pg",
+    "postgres",
+    "helpers",
+    "migrate",
+    "rollback",
+    "seed"
+  ],
+  "author": "William E Connatser III",
+  "license": "SEE LICENSE IN LICENSE",
+  "bugs": {
+    "url": "https://github.com/WilliamConnatser/pg-toolbox/issues"
+  },
+  "homepage": "https://github.com/WilliamConnatser/pg-toolbox#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "pg": "^8.5.1"
+  }
+}

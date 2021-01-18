@@ -1,5 +1,7 @@
 # pg-toolbox
 
+# WARNING: brand new largely untested package with an unstable API
+
 Utility functions built on top of the `pg` Postgres database package. A couple of them are straight out of the examples in the pg package's [documentation](https://node-postgres.com/), and some are ones I thought would be convenient to have. This package exposes a lot of APIs in that package so please refer to that documentation for a lower level understanding of this package.
 
 - Automatic pool connection

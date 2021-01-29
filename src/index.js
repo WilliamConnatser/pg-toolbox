@@ -1,20 +1,25 @@
+require("dotenv").config();
 const { Pool } = require("pg");
 
 class _PGToolbox {
   constructor(config) {
-    const { connection } = config;
-
     //Connect to the database
-    if (!connection)
+    if (
+      !process.env.PGURI &&
+      !process.env.PGHOST &&
+      !process.env.PGUSER &&
+      !process.env.PGDATABASE &&
+      !process.env.PGPASSWORD &&
+      !process.env.PGPORT
+    ) {
       throw new Error(
-        "[PGToolbox]  No connection string or configuration object provided in the 'connection' property of PGToolbox configuration."
+        "[PGToolbox] No environment variables provided to connect to the database"
       );
+    }
 
-    this.pool = new Pool(
-      connection instanceof String || typeof connection === "string"
-        ? { connectionString: connection }
-        : connection
-    );
+    this.pool = process.env.PGURI
+      ? new Pool({ connectionString: process.env.PGURI })
+      : new Pool();
   }
 
   async query(text, params) {

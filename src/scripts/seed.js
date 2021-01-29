@@ -6,37 +6,50 @@ const PGToolbox = require("../index");
 const { getFiles, alterDatabase } = require("./utilities");
 
 (async () => {
-  const db = await PGToolbox({ connection: process.env.PG_CONNECTION_STRING });
-  await alterDatabase(db, "truncate", false);
+  const db = await PGToolbox();
+  await alterDatabase("truncate", db, false);
 
   db.transaction(async (client) => {
-    const tablesPath = path.join(process.env.PWD, "db/tables");
-    const tables = getFiles(tablesPath);
+    const migrations = getFiles(
+      path.join(process.env.PWD, process.env.PGMIGRATIONS)
+    ).map((fileName) => ({
+      fileName,
+      ...require(path.join(
+        process.env.PWD,
+        process.env.PGMIGRATIONS,
+        fileName
+      )),
+    }));
+
     return Promise.all(
-      tables.map((table, i) => {
-        const tableConfig = require(path.join(tablesPath, table));
-        if (Array.isArray(tableConfig.seeds) && tableConfig.seeds.length > 0) {
-          const seedValues = tableConfig.seeds.map((seed) =>
-            Object.values(seed)
-          );
-          const query = `
-        INSERT INTO ${tableConfig.name} (${Object.keys(
-            tableConfig.seeds[0]
+      migrations.map(({ fileName, seeds }) => {
+        if (!seeds) return Promise.resolve();
+        const tableName = seeds.tableName;
+        seeds = seeds.seeds;
+
+        if (Array.isArray(seeds) && seeds.length > 0) {
+          const seedValues = seeds.map((seed) => Object.values(seed));
+          const script = `
+        INSERT INTO ${tableName} (${Object.keys(
+            seeds[0]
           ).toString()}) VALUES\n\t${seedValues
             .map(
               (array, rowIndex) =>
                 `(${array
                   .map(
-                    (item, columnIndex) =>
+                    (_, columnIndex) =>
                       `$${rowIndex * seedValues[0].length + (columnIndex + 1)}`
                   )
                   .toString()})`
             )
             .join(`,\n\t`)}
       `;
-          console.log(query, `\n[pg-toolbox] Seed: Running query #${i + 1}`);
-          console.log(seedValues.flat(), "Inserting this");
-          return client.query(query, seedValues.flat());
+          console.log(
+            script,
+            seedValues.flat(),
+            `\n[pg-toolbox] Seed: Running seed script ${fileName}`
+          );
+          return client.query(script, seedValues.flat());
         }
       })
     );

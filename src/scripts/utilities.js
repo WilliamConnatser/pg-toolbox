@@ -1,4 +1,3 @@
-require("dotenv").config();
 const PGToolbox = require("../index");
 const fs = require("fs");
 const path = require("path");
@@ -7,62 +6,46 @@ const getFiles = (path) => {
   return fs.readdirSync(path);
 };
 
-const alterDatabase = async (db, type, closePool = true) => {
-  //For each method (migrate, rollback, or seed)
-  //We check to see if the user has defined a custom script
+const alterDatabase = async (type, db = null, closePool = true) => {
+  if (!db) db = PGToolbox();
+  const migrations = getFiles(
+    path.join(process.env.PWD, process.env.PGMIGRATIONS)
+  ).map((fileName) => ({
+    fileName,
+    ...require(path.join(process.env.PWD, process.env.PGMIGRATIONS, fileName)),
+  }));
+
   return db
     .transaction(async (client) => {
-      const tables = await getFiles(path.join(process.cwd(), "./db/tables"));
-
       switch (type) {
         case "rollback":
           return Promise.all(
-            tables.reverse().map((table, i, arr) => {
-              const tableData = require(path.join(
-                process.env.PWD,
-                "db/tables",
-                table
-              ));
-              const query = tableData.rollback
-                ? tableData.rollback
-                : `\n\tDROP TABLE IF EXISTS ${tableData.name}`;
-
+            migrations.reverse().map(({ rollback, fileName }) => {
               console.log(
-                query,
-                `\n[pg-toolbox] Rollback: Running query #${arr.length - 1 + i}`
+                rollback,
+                `\n[pg-toolbox] Rollback: Running rollback script in ${fileName}`
               );
-              return client.query(query);
+              return client.query(rollback);
             })
           );
         case "truncate":
           return Promise.all(
-            tables.reverse().map((table, i, arr) => {
-              const tableData = require(path.join(
-                process.env.PWD,
-                "db/tables",
-                table
-              ));
-              const query = tableData.truncate
-                ? tableData.truncate
-                : `\n\tTRUNCATE ${tableData.name} RESTART IDENTITY CASCADE`;
+            migrations.reverse().map(({ truncate, fileName }) => {
               console.log(
-                query,
-                `\n[pg-toolbox] Truncate: Running query #${arr.length - 1 + i}`
+                truncate,
+                `\n[pg-toolbox] Truncate: Running truncate script in ${fileName}`
               );
-              return client.query(query);
+              return client.query(truncate);
             })
           );
         case "migrate":
           return Promise.all(
-            tables.map((table, i) => {
-              const query =
-                "\n\t" +
-                require(path.join(process.env.PWD, "db/tables", table)).migrate;
+            migrations.map(({ migrate, fileName }) => {
               console.log(
-                query,
-                `\n[pg-toolbox] Migrate: Running query #${i + 1}`
+                migrate,
+                `\n[pg-toolbox] Migrate: Running migration script in ${fileName}`
               );
-              return client.query(query);
+              return client.query(migrate);
             })
           );
       }

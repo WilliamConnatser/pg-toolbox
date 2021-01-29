@@ -1,7 +1,7 @@
 {
   "name": "pg-toolbox",
-  "version": "1.1.27",
-  "description": "Postgres Pool class with helper functions which enforce best practices & reduce boilerplate code, and CLI commands to migrate, rollback, truncate and seed a Postgres database",
+  "version": "1.1.28",
+  "description": "Utility functions and CLI scripts built on top of the `pg` Postgres database package",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -31,7 +31,9 @@
   },
   "homepage": "https://github.com/WilliamConnatser/pg-toolbox#readme",
   "dependencies": {
-    "dotenv": "^8.2.0",
     "pg": "^8.5.1"
+  },
+  "devDependencies": {
+    "dotenv": "^8.2.0"
   }
 }

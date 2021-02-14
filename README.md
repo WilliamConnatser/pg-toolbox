@@ -142,16 +142,23 @@ module.exports = {
     ],
   },
 };
-
 ```
 
 `/db/migrations/2-companies.js`
 
+```
 module.exports = {
-migrate: `CREATE TABLE companies ( id SERIAL PRIMARY KEY, ticker VARCHAR(6) UNIQUE, cusip VARCHAR(9) NOT NULL UNIQUE, given_name VARCHAR(50) NOT NULL UNIQUE, readable_name VARCHAR(50) NOT NULL UNIQUE )`,
-rollback: `DROP TABLE IF EXISTS companies`,
-truncate: `TRUNCATE companies RESTART IDENTITY CASCADE`,
+  migrate: `CREATE TABLE companies (
+    id  SERIAL PRIMARY KEY,
+    ticker  VARCHAR(6) UNIQUE,
+    cusip VARCHAR(9) NOT NULL UNIQUE,
+    given_name VARCHAR(50) NOT NULL UNIQUE,
+    readable_name VARCHAR(50) NOT NULL UNIQUE
+  )`,
+  rollback: `DROP TABLE IF EXISTS companies`,
+  truncate: `TRUNCATE companies RESTART IDENTITY CASCADE`,
 };
+```
 
 `/db/tables/3-holdings.js`
 
@@ -170,7 +177,6 @@ module.exports = {
   rollback: `DROP TABLE IF EXISTS holdings`,
   truncate: `TRUNCATE holdings RESTART IDENTITY CASCADE`,
 };
-
 ```
 
 # CLI Commands

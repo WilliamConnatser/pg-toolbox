@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+require("dotenv").config();
 const { alterDatabase } = require("./utilities");
 
-(async () => alterDatabase("rollback"))();
+alterDatabase("rollback");

@@ -1,16 +1,15 @@
-require("dotenv").config();
 const { Pool } = require("pg");
 
 class _PGToolbox {
-  constructor(config) {
+  constructor() {
     //Connect to the database
     if (
       !process.env.PGURI &&
-      !process.env.PGHOST &&
-      !process.env.PGUSER &&
-      !process.env.PGDATABASE &&
-      !process.env.PGPASSWORD &&
-      !process.env.PGPORT
+      (!process.env.PGHOST ||
+        !process.env.PGUSER ||
+        !process.env.PGDATABASE ||
+        !process.env.PGPASSWORD ||
+        !process.env.PGPORT)
     ) {
       throw new Error(
         "[PGToolbox] No environment variables provided to connect to the database"
@@ -23,13 +22,7 @@ class _PGToolbox {
   }
 
   async query(text, params) {
-    try {
-      return await this.pool.query(text, params);
-    } catch (err) {
-      console.log(text, "[PGToolbox] Errored query");
-      console.log(err, "[PGToolbox] Error executing query");
-      throw err;
-    }
+    return await this.pool.query(text, params);
   }
 
   async getClient() {
@@ -67,7 +60,6 @@ class _PGToolbox {
         await client.query("BEGIN");
         const res = await callback(client);
         await client.query("COMMIT");
-        client.release();
         return res;
       } catch (err) {
         await client.query("ROLLBACK");
@@ -75,13 +67,15 @@ class _PGToolbox {
           err,
           "\n[PGToolbox] Error during transaction- Changes rolled back"
         );
-        await client.release();
         throw err;
+      } finally {
+        client.release();
       }
     });
   }
 }
 
+//Create new PGToolbox instance without the new keyword
 const PGToolbox = function (payload) {
   if (payload instanceof _PGToolbox) return payload;
   else if (!payload || payload instanceof Object)

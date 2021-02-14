@@ -2,6 +2,10 @@
 
 # pg-toolbox
 
+This package is meant to promote writing pure SQL instead of using an ORM, knex, etc, both as a learning experience to learn SQL, and because dynamic query builders (like knex, for instance) are overkill for most applications and use cases.
+
+This package is being created with students and those in an early stage of their careers in mind to help them solidify their SQL knowledge in a practical and project-based setting by using this package to build applications with!
+
 - Utility functions and CLI scripts built on top of the `pg` Postgres database package.
 - This package exposes a lot of APIs in that package so please refer to the [pg documentation](https://node-postgres.com/) for a lower level understanding of this package.
 - Automatically establishes a `pg` Pool connection
@@ -35,7 +39,7 @@ npm install pg-toolbox
 
 ## Initialize the package in `/db/index.js`
 
-You will import this object into other modules in order to make database queries in your application using the above described utility functions.
+You will import this object into other modules in order to make database queries in your application using the above described utility functions. Behind the scenes `PGToolbox` makes a new pooled connection to the database, and returns an object with utility functions and properties to make database queries.
 
 ```
 const PGToolbox = require("pg-toolbox");
@@ -47,21 +51,19 @@ module.exports = db;
 
 ## Create an ENV file in the root directory of your project
 
-You only need to do this in development, because a development dependency `dotenv` is used to red the environment variables when you are running the CLI scripts to manage your database.
+You only need to do this in development, because a development dependency `dotenv` is used to read the environment variables when you are running the CLI scripts to manage your database. In production you may inject environment variables however you'd like depending on where you are deploying to.
 
 Example `.env` file:
 
 ```
 PGMIGRATIONS=/path/to/db/migration/folder
-PGURI=
+PGURI=postgres://user:pass@host:port_number/database
 # Optionally, use individual values instead of a database connection string URI:
 # PGHOST=
 # PGUSER=
 # PGDATABASE=
 # PGPASSWORD=
 # PGPORT=
-
-
 ```
 
 ## Create your migration definitions
@@ -94,7 +96,7 @@ PGURI=
         - Array of object literals
           - Each object in the array should represent a single row to be seeded with they keys of the object being table columns, and the values of the object being the values of the columns.
     - Optional
-    - Example: `{ tableName: "funds", seeds: [ { name: "ARK Innovation ETF", ticker: "ARKK", url: "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_INNOVATION_ETF_ARKK_HOLDINGS.csv", },...]`
+    - Example seeds: `{ tableName: "funds", seeds: [ { name: "ARK Innovation ETF", ticker: "ARKK", url: "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_INNOVATION_ETF_ARKK_HOLDINGS.csv", },...]`
 
 ## Example migration definitions:
 

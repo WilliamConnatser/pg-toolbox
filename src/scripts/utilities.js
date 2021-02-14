@@ -53,6 +53,7 @@ const handleMigrationChange = async (db, client, fileName, migrating) => {
           })
           .then(({ rows }) => {
             if (!rows[0].exists) {
+              //If there are no more tables to rollback then drop the pg_toolbox_migrations table
               return client.query(`DROP TABLE IF EXISTS pg_toolbox_migrations`);
             }
           });

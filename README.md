@@ -1,21 +1,23 @@
+# WARNING: DO NOT USE UNTIL VERSION 1.2 OR GREATER - Brand new and largely untested package with an unstable API
+
 # pg-toolbox
 
-# WARNING: brand new largely untested package with an unstable API
-
-- Utility functions and scripts built on top of the `pg` Postgres database package.
+- Utility functions and CLI scripts built on top of the `pg` Postgres database package.
 - This package exposes a lot of APIs in that package so please refer to the [pg documentation](https://node-postgres.com/) for a lower level understanding of this package.
-- Automatically establishes a pg Pool connection
-  - When PGToolbox is initialized, it automatically connects to the database using environment variables.
+- Automatically establishes a `pg` Pool connection
+  - When PGToolbox is initialized, it automatically connects to the database using environment variables. Whereas the `pg` package has this functionality if you are using the `PGHOST`, `PGUSER`, etc, environment variables, this package adds the ability to declare a single environment variable `PGURI` to automatically connect with a URI connection string.
   - PG's Pool object is accessible directly at `PGToolbox.pool` if you ever need it, but most of the time you will probably be using utility functions like `PGToolbox.query(text, params)` or `PGToolbox.transaction((client) => callback)`
-- Execute a query with PGToolbox.query(text, params)
-  - This utility function automatically uses the pg Pool instance created when the package is initialized, and is the safest way to run a query (no chance of leaking connections- see the `PGToolbox.transaction()` section below)
-  - Exact same API as `PG.Pool.query()` with a wrapper which logs error to the console.
-- Execute a transaction with PGToolbox.transaction((client) => callback)
-  - A callback function is sent in which is wrapped in `BEGIN` and `COMMIT` SQL statements. If an error occurs in your callback, then the `ROLLBACK` statement is automatically called to rollback the transaction. Make sure to "re-throw" any errors if you handle them inside your callback or else the transaction will not be rolled back.
+- Execute a query with `PGToolbox.query(text, params)`
+  - This utility function automatically uses the pg Pool instance created when the package is initialized, and is the safest way to run a query because there is no chance of leaking connections.
+  - Exact same API as `PG.Pool.query()`
+- Execute a transaction with `PGToolbox.transaction((client) => callback)`
   - Accepts a callback with the first argument being a client object
   - Automatically releases the client after the transaction is committed successfully or rolled back.
+  - A callback function should be sent in as the first argument, and the callback is executed in between `BEGIN` and `COMMIT` SQL statements. If an error occurs in your callback, then the `ROLLBACK` statement is automatically called to rollback the transaction.
+  - Make sure to "re-throw" any errors if you handle or catch them inside your callback, or else the transaction will not be rolled back properly.
+  - If there are any queries which you expect to error out inside the callback function (for instance, querying for a table tht might not exist yet), but you want to handle the error and continue with the transaction, then do not use the client in the transaction callback to make that query. If you use the transaction's client, and a query errors out, then even if you catch the error the rest of the queries done with that client will not work. Use `PG.Pool.query()` for these queries instead.. you can use it inside the transaction call back with no issues.
 - Check out a client with `PGToolbox.getClient()`
-  - In most cases you will probably use
+  - In most cases you should probably use `PGToolbox.query()` or `PGToolbox.transaction()`
   - Clients must be released after their usage or else connections may not be closed properly. Read more about this in the PG documentation if using getClient()
 - CLI Commands For Database Management
   - `npx pg-migrate`
@@ -45,7 +47,9 @@ module.exports = db;
 
 ## Create an ENV file in the root directory of your project
 
-Example `.env`
+You only need to do this in development, because a development dependency `dotenv` is used to red the environment variables when you are running the CLI scripts to manage your database.
+
+Example `.env` file:
 
 ```
 PGMIGRATIONS=/path/to/db/migration/folder
@@ -181,20 +185,25 @@ module.exports = {
 
 # CLI Commands
 
-The CLI commands use the migration definitions you define to manage your database.
+The CLI commands use the migration definitions you define (see above) to manage your database.
 
 ## npx pg-migrate
 
-    Runs migration scripts
+- Runs migration scripts in ascending alphabetical order
+- Skips any migrations which have already been ran
+- A table named `pg_toolbox_migrations` is automatically created and updated to keep track of which migrations have already been executed.
 
 ## npx pg-rollback
 
-    Runs rollback scripts
+- Runs rollback scripts in descending alphabetical order
+- The migration table named `pg_toolbox_migrations` is automatically dropped after all rollback scripts have been processed.
 
 ## npx pg-truncate
 
-    Runs truncate scripts
+- Runs truncate scripts in descending alphabetical order
 
 ## npx pg-seed
 
-    Runs truncate scripts, then seeds the data provided into your tables
+- Runs truncate scripts in descending alphabetical order
+- Then seeds the data provided into your tables processing scrips in ascending alphabetical order
+- For now the same columns must be provided for all seeds because they are inserted in a single statement, but in the future I will write an algorithm to split up seeds provided with different columns into separate batches. It is on my future enhancement to-do list!

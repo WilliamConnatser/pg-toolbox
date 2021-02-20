@@ -1,16 +1,13 @@
 {
   "name": "pg-toolbox",
-  "version": "1.1.29",
-  "description": "Utility functions and CLI scripts built on top of the `pg` Postgres database package",
+  "version": "1.1.30",
+  "description": "A package of CLI scripts to manage a Postgres database including scripts to execute migrations, rollback migrations, seed or truncating a Postgres database.",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-    "pg-migrate": "./src/scripts/migrate.js",
-    "pg-rollback": "./src/scripts/rollback.js",
-    "pg-truncate": "./src/scripts/truncate.js",
-    "pg-seed": "./src/scripts/seed.js"
+    "pg-toolbox": "./src/index.js"
   },
   "repository": {
     "type": "git",
@@ -30,10 +27,8 @@
     "url": "https://github.com/WilliamConnatser/pg-toolbox/issues"
   },
   "homepage": "https://github.com/WilliamConnatser/pg-toolbox#readme",
-  "dependencies": {
-    "pg": "^8.5.1"
-  },
   "devDependencies": {
-    "dotenv": "^8.2.0"
+    "dotenv": "^8.2.0",
+    "slonik": "^23.5.5"
   }
 }

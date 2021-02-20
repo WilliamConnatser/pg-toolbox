@@ -1,25 +1,22 @@
-const truncate = async (connection, transactionConnection, toolboxFiles) => {
+const getMigrationsExecuted = require("./getMigrationsExecuted");
+const formatAndConsoleLog = require("./formatAndConsoleLog");
+
+const truncate = async (pool, transactionConnection, toolboxFiles) => {
   //Iterate over migration files in descending alphabetical order
-  const toolboxFilesReversed = toolboxFiles.reverse();
+  const toolboxFilesReversed = toolboxFiles.slice().reverse();
   for (let toolboxFile of toolboxFilesReversed) {
     const { truncate, fileName } = toolboxFile;
 
     //Check if the toolbox file migration script was already executed before truncating
-    const migrationsExecuted = await getMigrationsExecuted(
-      connection,
-      fileName
-    );
+    const migrationsExecuted = await getMigrationsExecuted(pool, fileName);
     if (migrationsExecuted) {
-      console.log(
-        truncate,
-        `\n[pg-toolbox] Truncate: Running truncate script in ${fileName}`
+      formatAndConsoleLog(
+        `Truncate: Running truncate script in ${fileName}`,
+        truncate
       );
       await transactionConnection.query(truncate);
     } else {
-      console.log(
-        truncate,
-        `\n[pg-toolbox] Truncate: ${fileName} has not been migrated yet.`
-      );
+      formatAndConsoleLog(`Truncate: ${fileName} has not been migrated yet.`);
     }
   }
 };

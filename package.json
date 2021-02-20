@@ -2,7 +2,7 @@
   "name": "pg-toolbox",
   "version": "1.1.30",
   "description": "A package of CLI scripts to manage a Postgres database including scripts to execute migrations, rollback migrations, seed or truncating a Postgres database.",
-  "main": "src/index.js",
+  "main": "src/exports.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

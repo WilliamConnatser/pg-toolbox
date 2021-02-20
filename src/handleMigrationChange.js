@@ -1,53 +1,64 @@
-const handleMigrationChange = async (db, client, fileName, migrating) => {
-  return db
-    .query(
-      `SELECT EXISTS (SELECT true FROM pg_toolbox_migrations FETCH FIRST 1 ROWS ONLY)`
-    )
+const { sql } = require("slonik");
+
+const handleMigrationChange = async (
+  pool,
+  transactionConnection,
+  fileName,
+  migrating
+) => {
+  return pool
+    .exists(sql`SELECT true FROM pg_toolbox_migrations FETCH FIRST 1 ROWS ONLY`)
     .then(() => {
       //The table exists already so we need to update it
       if (migrating) {
         //If migrating then create a new row for this table in the database
-        return client.query(
-          `
-          INSERT INTO pg_toolbox_migrations(name)
-            VALUES($1)`,
-          [fileName]
+        return transactionConnection.query(
+          sql`INSERT INTO pg_toolbox_migrations(name)
+            VALUES(${fileName})`
         );
       } else {
         //Else when rolling back remove the row from the database
-        return client
+        return transactionConnection
           .query(
-            `
+            sql`
           DELETE FROM pg_toolbox_migrations
-            WHERE name = $1`,
-            [fileName]
+            WHERE name = ${fileName}`
           )
           .then(() => {
-            return client.query(
-              `SELECT EXISTS (SELECT true FROM pg_toolbox_migrations FETCH FIRST 1 ROWS ONLY)`
+            //Check if there are anymore rows in pg_toolbox_migrations
+            return transactionConnection.exists(
+              sql`SELECT true FROM pg_toolbox_migrations FETCH FIRST 1 ROWS ONLY`
             );
           })
-          .then(({ rows }) => {
-            if (!rows[0].exists) {
-              //If there are no more tables to rollback then drop the pg_toolbox_migrations table
-              return client.query(`DROP TABLE IF EXISTS pg_toolbox_migrations`);
+          .then((rowExists) => {
+            if (!rowExists) {
+              //If there are no more tables to rollback, then drop the pg_toolbox_migrations table
+              return transactionConnection.query(
+                sql`DROP TABLE IF EXISTS pg_toolbox_migrations`
+              );
             }
           });
       }
     })
     .catch(async (err) => {
       if (err.code === "42P01") {
-        //The table does not exist yet, meaning no migrations have ran at all
-        //If migrating then create the table and recursively call handleMigrationChange
+        //If the table does not exist yet, meaning no migrations have ran at all
         if (migrating) {
-          db.query(
-            `
-              CREATE TABLE pg_toolbox_migrations (
+          //If migrating and the table does not exits, then create the table, and recursively execute handleMigrationChange
+          pool
+            .query(
+              sql`CREATE TABLE pg_toolbox_migrations (
               name VARCHAR(50) PRIMARY KEY
             )`
-          ).then(() => {
-            return handleMigrationChange(db, client, fileName, migrating);
-          });
+            )
+            .then(() => {
+              return handleMigrationChange(
+                pool,
+                transactionConnection,
+                fileName,
+                migrating
+              );
+            });
         } else {
           return;
         }

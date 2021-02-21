@@ -21,8 +21,18 @@ If you use knex and/or another ORM in all of your projects, then I would implore
 
 ## Install the NPM Package
 
+pg-toolbox should be installed as a development dependency so no bloat is added to your app. All of pg-toolboxs's CLI scripts are executed in a development environment.
+
+### With NPM
+
 ```
-npm install pg-toolbox
+npm install pg-toolbox -D
+```
+
+### With yarn
+
+```
+yarn add pg-toolbox -D
 ```
 
 ## Create an .env file in the root directory of your project

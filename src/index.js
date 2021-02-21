@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 require("dotenv").config();
+const alterDatabase = require("./alterDatabase");
 const option = process.argv[2];
 
 switch (option) {

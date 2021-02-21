@@ -2,32 +2,18 @@
 
 # pg-toolbox
 
-This package is meant to promote writing pure SQL instead of using an ORM, knex, etc, both as a learning experience to learn SQL, and because dynamic query builders (like knex, for instance) are overkill for most applications and use cases.
+# Why?
 
-This package is being created with students and those in an early stage of their careers in mind to help them solidify their SQL knowledge in a practical and project-based setting by using this package to build applications with!
+I decided to create this package after reading this blog post from the creator of the NPM Package [slonik](https://github.com/gajus/slonik) [Gajus Kuizinas](https://github.com/gajus). In the blog post he makes what I think is a solid argument to write pure SQL instead of using libraries like ORMs or Knex.JS as a way to solidify your SQL knowledge, and due to the fact that dynamic query builders (like Knex.JS, for instance) are overkill for most applications and use cases.
 
-- Utility functions and CLI scripts built on top of the `pg` Postgres database package.
-- This package exposes a lot of APIs in that package so please refer to the [pg documentation](https://node-postgres.com/) for a lower level understanding of this package.
-- Automatically establishes a `pg` Pool connection
-  - When PGToolbox is initialized, it automatically connects to the database using environment variables. Whereas the `pg` package has this functionality if you are using the `PGHOST`, `PGUSER`, etc, environment variables, this package adds the ability to declare a single environment variable `PGURI` to automatically connect with a URI connection string.
-  - PG's Pool object is accessible directly at `PGToolbox.pool` if you ever need it, but most of the time you will probably be using utility functions like `PGToolbox.query(text, params)` or `PGToolbox.transaction((client) => callback)`
-- Execute a query with `PGToolbox.query(text, params)`
-  - This utility function automatically uses the pg Pool instance created when the package is initialized, and is the safest way to run a query because there is no chance of leaking connections.
-  - Exact same API as `PG.Pool.query()`
-- Execute a transaction with `PGToolbox.transaction((client) => callback)`
-  - Accepts a callback with the first argument being a client object
-  - Automatically releases the client after the transaction is committed successfully or rolled back.
-  - A callback function should be sent in as the first argument, and the callback is executed in between `BEGIN` and `COMMIT` SQL statements. If an error occurs in your callback, then the `ROLLBACK` statement is automatically called to rollback the transaction.
-  - Make sure to "re-throw" any errors if you handle or catch them inside your callback, or else the transaction will not be rolled back properly.
-  - If there are any queries which you expect to error out inside the callback function (for instance, querying for a table tht might not exist yet), but you want to handle the error and continue with the transaction, then do not use the client in the transaction callback to make that query. If you use the transaction's client, and a query errors out, then even if you catch the error the rest of the queries done with that client will not work. Use `PG.Pool.query()` for these queries instead.. you can use it inside the transaction call back with no issues.
-- Check out a client with `PGToolbox.getClient()`
-  - In most cases you should probably use `PGToolbox.query()` or `PGToolbox.transaction()`
-  - Clients must be released after their usage or else connections may not be closed properly. Read more about this in the PG documentation if using getClient()
-- CLI Commands For Database Management
-  - `npx pg-migrate`
-  - `npx pg-rollback`
-  - `npx pg-truncate`
-  - `npx pg-seed`
+I had heavily relied on Knex.JS in my career up to the time read this blog post, and it really resonated with me so I started using `slonik` to query PostgreSQL databases. However, I had grown used to the CLI commands in `knex` to manage migrations and seeding, and `slonik` does not have that capability so I built this package to be used in tandem with `slonik` in order to manage your database.
+
+If you use knex and/or another ORM in all of your projects, then I would implore to give `slonik` and `pg-toolbox` a try! Especially if you are a students, or in an early stage of your career, because I guarantee you once you start writing pure SQL you will realize there are gaps in your SQL knowledge. Using these packages will help you solidify your SQL knowledge in a practical and project-based setting by building applications!
+
+# Features
+
+- Several CLI commands to migrate, rollback, truncate, or seed your database.
+- No bloat or production dependencies. The only packages this package uses (`dotenv` and `slonik`) are development dependencies because usually people do migrations etc in the development environments.
 
 # Usage
 
@@ -37,140 +23,104 @@ This package is being created with students and those in an early stage of their
 npm install pg-toolbox
 ```
 
-## Initialize the package in `/db/index.js`
+## Create an .env file in the root directory of your project
 
-You will import this object into other modules in order to make database queries in your application using the above described utility functions. Behind the scenes `PGToolbox` makes a new pooled connection to the database, and returns an object with utility functions and properties to make database queries.
-
-```
-const PGToolbox = require("pg-toolbox");
-
-const db = PGToolbox();
-
-module.exports = db;
-```
-
-## Create an ENV file in the root directory of your project
-
-You only need to do this in development, because a development dependency `dotenv` is used to read the environment variables when you are running the CLI scripts to manage your database. In production you may inject environment variables however you'd like depending on where you are deploying to.
+You only need to do this in the development environment because the development dependency `dotenv` is used to read the environment variables when you are running the CLI scripts to manage your database.
 
 Example `.env` file:
 
 ```
-PGMIGRATIONS=/path/to/db/migration/folder
+PGMIGRATIONS=/path/from/root/folder/of/project/to/folder/containing/toolbox/files
 PGURI=postgres://user:pass@host:port_number/database
-# Optionally, use individual values instead of a database connection string URI:
-# PGHOST=
-# PGUSER=
-# PGDATABASE=
-# PGPASSWORD=
-# PGPORT=
 ```
 
-## Create your migration definitions
+## Create your toolbox files
 
-- Migration definitions are consumed by the CLI commands, and are retrieved using the PGMIGRATIONS environment variable which represents the path from the root folder of your project to the migrations folder.
-- The scripts will be executed in alphabetical order (ascending when migrating and seeding, or descending when truncating and rolling back).
-- Migration definitions are object literals with the following keys:
-  - `migrate`
-    - SQL script
-    - Script ran during migrations
-    - Required
-    - Example: `CREATE TABLE table_name ( id SERIAL PRIMARY KEY, ticker VARCHAR(5) NOT NULL UNIQUE, name VARCHAR(50) NOT NULL UNIQUE, url VARCHAR(150) NOT NULL UNIQUE )`
-  - `rollback`
-    - SQL script
-    - Script ran to drop tables during rollback
-    - Required
-    - Example: `DROP TABLE IF EXISTS table_name`
-  - `truncate`
-    - SQL script
-    - Script ran to truncate tables during truncate and seeding
-    - Required
-    - Example: `TRUNCATE table_name RESTART IDENTITY CASCADE`
-  - `seeds`
-    - Object literal with two keys:
-      - `tableName`
-        - String
-        - Used to determine which table to insert the seeds
-        - Required
-      - `seeds`
-        - Array of object literals
-          - Each object in the array should represent a single row to be seeded with they keys of the object being table columns, and the values of the object being the values of the columns.
-    - Optional
-    - Example seeds: `{ tableName: "funds", seeds: [ { name: "ARK Innovation ETF", ticker: "ARKK", url: "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_INNOVATION_ETF_ARKK_HOLDINGS.csv", },...]`
+- Toolbox files are consumed by the scripts which run after executing the CLI commands
+- All toolbox files inside the pg-toolbox folder are consumed by the CLI commands. The filepath from the root folder of your project to the folder containing the toolbox files is defined by the PGMIGRATIONS environment variable.
+- All scripts executed by the CLI commands are executed in alphabetical order **(ascending when migrating and seeding, or descending when truncating and rolling back)**.
+- Toolbox files must export async functions which return an object literal with the following keys: `migrate`, `rollback`, `truncate`, and `seed`.
+- The only optional keys of this object are `seed` and `truncate`- `migrate` and `rollback` are mandatory.
+- Each value of the object is a `slonik` query wrapped in backticks, and preceded by a sql template tag which can be imported like so: `const {sql} = require('pg-toolbox')`
 
-## Example migration definitions:
+## Example toolbox files:
 
-`/db/migrations/1-funds.js`
+### `/db/pg-toolbox/1-funds.js`
 
 ```
-module.exports = {
-  migrate: `CREATE TABLE funds (
+const { sql } = require("pg-toolbox");
+
+module.exports = async () => ({
+  migrate: sql`CREATE TABLE funds (
       id  SERIAL PRIMARY KEY,
-      ticker  VARCHAR(5) NOT NULL UNIQUE,
       name VARCHAR(50) NOT NULL UNIQUE,
+      ticker  VARCHAR(5) NOT NULL UNIQUE,
       url VARCHAR(150) NOT NULL UNIQUE
     )`,
-  rollback: `DROP TABLE IF EXISTS funds`,
-  truncate: `TRUNCATE funds RESTART IDENTITY CASCADE`,
-  seeds: {
-    tableName: "funds",
-    seeds: [
-      {
-        name: "ARK Innovation ETF",
-        ticker: "ARKK",
-        url:
-          "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_INNOVATION_ETF_ARKK_HOLDINGS.csv",
-      },
-      {
-        name: "ARK Autonomous Technology & Robotics ETF",
-        ticker: "ARKQ",
-        url:
-          "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_AUTONOMOUS_TECHNOLOGY_&_ROBOTICS_ETF_ARKQ_HOLDINGS.csv",
-      },
-      {
-        name: "ARK Next Generation Internet ETF",
-        ticker: "ARKW",
-        url:
-          "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_NEXT_GENERATION_INTERNET_ETF_ARKW_HOLDINGS.csv",
-      },
-      {
-        name: "ARK Genomic Revolution ETF",
-        ticker: "ARKG",
-        url:
-          "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_GENOMIC_REVOLUTION_MULTISECTOR_ETF_ARKG_HOLDINGS.csv",
-      },
-      {
-        name: "ARK Fintech Innovation ETF",
-        ticker: "ARKF",
-        url:
-          "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_FINTECH_INNOVATION_ETF_ARKF_HOLDINGS.csv",
-      },
+  rollback: sql`DROP TABLE IF EXISTS funds`,
+  truncate: sql`TRUNCATE funds RESTART IDENTITY CASCADE`,
+  seed: sql`INSERT INTO funds (name, ticker, url)
+  SELECT *
+  FROM ${sql.unnest(
+    [
+      [
+        "ARK Innovation ETF",
+        "ARKK",
+        "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_INNOVATION_ETF_ARKK_HOLDINGS.csv",
+      ],
+      [
+        "ARK Autonomous Technology & Robotics ETF",
+        "ARKQ",
+        "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_AUTONOMOUS_TECHNOLOGY_&_ROBOTICS_ETF_ARKQ_HOLDINGS.csv",
+      ],
+      [
+        "ARK Next Generation Internet ETF",
+        "ARKW",
+        "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_NEXT_GENERATION_INTERNET_ETF_ARKW_HOLDINGS.csv",
+      ],
+      [
+        "ARK Genomic Revolution ETF",
+        "ARKG",
+        "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_GENOMIC_REVOLUTION_MULTISECTOR_ETF_ARKG_HOLDINGS.csv",
+      ],
+      [
+        "ARK Fintech Innovation ETF",
+        "ARKF",
+        "https://ark-funds.com/wp-content/fundsiteliterature/csv/ARK_FINTECH_INNOVATION_ETF_ARKF_HOLDINGS.csv",
+      ],
     ],
-  },
-};
+    ["varchar", "varchar", "varchar"]
+  )}`,
+});
 ```
 
-`/db/migrations/2-companies.js`
+### `/db/pg-toolbox/2-companies.js`
 
 ```
-module.exports = {
-  migrate: `CREATE TABLE companies (
+const { sql } = require("pg-toolbox");
+
+module.exports = async () => ({
+  migrate: sql`CREATE TABLE companies (
     id  SERIAL PRIMARY KEY,
-    ticker  VARCHAR(6) UNIQUE,
+    given_ticker  VARCHAR(50) UNIQUE,
+    readable_ticker  VARCHAR(6) UNIQUE,
     cusip VARCHAR(9) NOT NULL UNIQUE,
     given_name VARCHAR(50) NOT NULL UNIQUE,
-    readable_name VARCHAR(50) NOT NULL UNIQUE
+    readable_name VARCHAR(50) UNIQUE
   )`,
-  rollback: `DROP TABLE IF EXISTS companies`,
-  truncate: `TRUNCATE companies RESTART IDENTITY CASCADE`,
-};
-```
-
-`/db/tables/3-holdings.js`
+  rollback: sql`DROP TABLE IF EXISTS companies`,
+  truncate: sql`TRUNCATE companies RESTART IDENTITY CASCADE`,
+});
 
 ```
-module.exports = {
-  migrate: `CREATE TABLE holdings (
+
+### `/db/pg-toolbox/3-holdings.js`
+
+```
+const { sql } = require("pg-toolbox");
+
+module.exports = async () => ({
+  migrate: sql`CREATE TABLE holdings (
     id  SERIAL PRIMARY KEY,
     day DATE NOT NULL,
     fund INTEGER REFERENCES funds (id) ON DELETE RESTRICT,
@@ -180,32 +130,39 @@ module.exports = {
     weight DECIMAL(5,2) NOT NULL,
     CONSTRAINT day_fund_company UNIQUE(day,fund,company)
   )`,
-  rollback: `DROP TABLE IF EXISTS holdings`,
-  truncate: `TRUNCATE holdings RESTART IDENTITY CASCADE`,
-};
+  rollback: sql`DROP TABLE IF EXISTS holdings`,
+  truncate: sql`TRUNCATE holdings RESTART IDENTITY CASCADE`,
+});
 ```
 
 # CLI Commands
 
-The CLI commands use the migration definitions you define (see above) to manage your database.
+The CLI commands use the toolbox files you defined (see above) to manage your database.
 
-## npx pg-migrate
+## npx pg-toolbox --migrate
 
-- Runs migration scripts in ascending alphabetical order
+- Executes migration scripts in **ascending alphabetical order**
 - Skips any migrations which have already been ran
-- A table named `pg_toolbox_migrations` is automatically created and updated to keep track of which migrations have already been executed.
+- A table named `pg_toolbox_migrations` is automatically created (and updated) to keep track of which migrations have already been executed.
 
-## npx pg-rollback
+## npx pg-toolbox --rollback
 
-- Runs rollback scripts in descending alphabetical order
-- The migration table named `pg_toolbox_migrations` is automatically dropped after all rollback scripts have been processed.
+- Executes rollback scripts in **descending alphabetical order**
+- Each toolbox file's rollback script is only ran if the migration script for that file was already executed.
+- The table named `pg_toolbox_migrations` which keeps track of migrations is automatically dropped after all rollback scripts have been processed.
 
-## npx pg-truncate
+## npx pg-toolbox --truncate
 
-- Runs truncate scripts in descending alphabetical order
+- Executes truncate scripts in **descending alphabetical order**
+- Each toolbox file's truncate script is only ran if the migration script for that file was already executed.
 
-## npx pg-seed
+## npx pg-toolbox --seed
 
-- Runs truncate scripts in descending alphabetical order
-- Then seeds the data provided into your tables processing scrips in ascending alphabetical order
-- For now the same columns must be provided for all seeds because they are inserted in a single statement, but in the future I will write an algorithm to split up seeds provided with different columns into separate batches. It is on my future enhancement to-do list!
+- Executes seed scripts in **ascending alphabetical order**
+- Each toolbox file's seed script is only ran if the migration script for that file was already executed.
+
+## Advanced Usage
+
+- The `slonik` package is the only export of this package, and can be imported to a toolbox file like so: `const slonik = require('slonik')`
+- This export contains the entire slonik library so you can write more advanced SQL scripts
+- Furthermore, toolbox files are async functions for a reason. You may need to perform some database queries in order to inject dynamic values into your queries.

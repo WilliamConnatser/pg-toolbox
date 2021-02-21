@@ -10,11 +10,17 @@ const truncate = async (pool, transactionConnection, toolboxFiles) => {
     //Check if the toolbox file migration script was already executed before truncating
     const migrationsExecuted = await getMigrationsExecuted(pool, fileName);
     if (migrationsExecuted) {
-      formatAndConsoleLog(
-        `Truncate: Running truncate script in ${fileName}`,
-        truncate
-      );
-      await transactionConnection.query(truncate);
+      if (truncate) {
+        formatAndConsoleLog(
+          `Truncate: Running truncate script in ${fileName}`,
+          truncate
+        );
+        await transactionConnection.query(truncate);
+      } else {
+        formatAndConsoleLog(
+          `Truncate: ${fileName} does not have a truncate script.`
+        );
+      }
     } else {
       formatAndConsoleLog(`Truncate: ${fileName} has not been migrated yet.`);
     }

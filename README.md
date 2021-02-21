@@ -4,7 +4,7 @@
 
 # Why?
 
-I decided to create this package after reading this blog post from the creator of the NPM Package [slonik](https://github.com/gajus/slonik) [Gajus Kuizinas](https://github.com/gajus). In the blog post he makes what I think is a solid argument to write pure SQL instead of using libraries like ORMs or Knex.JS as a way to solidify your SQL knowledge, and due to the fact that dynamic query builders (like Knex.JS, for instance) are overkill for most applications and use cases.
+I decided to create this package after reading this blog post from the creator of the NPM Package [slonik](https://github.com/gajus/slonik) ([Gajus Kuizinas](https://github.com/gajus)). In the blog post he makes what I think is a solid argument to write pure SQL instead of using libraries like ORMs or Knex.JS as a way to solidify your SQL knowledge, and due to the fact that dynamic query builders (like Knex.JS, for instance) are overkill for most applications and use cases.
 
 I had heavily relied on Knex.JS in my career up to the time read this blog post, and it really resonated with me so I started using `slonik` to query PostgreSQL databases. However, I had grown used to the CLI commands in `knex` to manage migrations and seeding, and `slonik` does not have that capability so I built this package to be used in tandem with `slonik` in order to manage your database.
 
@@ -13,7 +13,9 @@ If you use knex and/or another ORM in all of your projects, then I would implore
 # Features
 
 - Several CLI commands to migrate, rollback, truncate, or seed your database.
-- No bloat or production dependencies. The only packages this package uses (`dotenv` and `slonik`) are development dependencies because usually people do migrations etc in the development environments.
+- No bloat or production dependencies. The only packages this package uses (`dotenv` and `slonik`) are development dependencies.
+- Ability to inject dynamic values into Toolbox files' scripts
+- Ability to dynamically build the Toolbox files' scripts
 
 # Usage
 
@@ -38,12 +40,14 @@ PGURI=postgres://user:pass@host:port_number/database
 
 - Toolbox files are consumed by the scripts which run after executing the CLI commands
 - All toolbox files inside the pg-toolbox folder are consumed by the CLI commands. The filepath from the root folder of your project to the folder containing the toolbox files is defined by the PGMIGRATIONS environment variable.
-- All scripts executed by the CLI commands are executed in alphabetical order **(ascending when migrating and seeding, or descending when truncating and rolling back)**.
-- Toolbox files must export async functions which return an object literal with the following keys: `migrate`, `rollback`, `truncate`, and `seed`.
+- All scripts executed by the CLI commands are executed in alphabetical order (ascending when migrating and seeding, or descending when truncating and rolling back).
+- Toolbox files must export an async function which returns an object literal.
+- The object literal should contain the following keys: `migrate`, `rollback`, `truncate`, and `seed`.
 - The only optional keys of this object are `seed` and `truncate`- `migrate` and `rollback` are mandatory.
 - Each value of the object is a `slonik` query wrapped in backticks, and preceded by a sql template tag which can be imported like so: `const {sql} = require('pg-toolbox')`
+- See the Slonik Documentation to discover many utility functions for advanced query building.
 
-## Example toolbox files:
+## Example Toolbox Files:
 
 ### `/db/pg-toolbox/1-funds.js`
 
@@ -163,6 +167,6 @@ The CLI commands use the toolbox files you defined (see above) to manage your da
 
 ## Advanced Usage
 
-- The `slonik` package is the only export of this package, and can be imported to a toolbox file like so: `const slonik = require('slonik')`
-- This export contains the entire slonik library so you can write more advanced SQL scripts
-- Furthermore, toolbox files are async functions for a reason. You may need to perform some database queries in order to inject dynamic values into your queries.
+- The `slonik` package is the only export of this package, and can be imported to a toolbox file like so: `const slonik = require('pg-toolbox')`
+- This export contains the entire slonik library so you can write more advanced SQL scripts using slonik's many utility functions.
+- Furthermore, toolbox files export an async function for a reason. You may perform database queries in order to inject dynamic values into your queries, or dynamically build a SQL script.

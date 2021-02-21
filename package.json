@@ -1,6 +1,6 @@
 {
   "name": "pg-toolbox",
-  "version": "1.1.32",
+  "version": "1.1.33",
   "description": "A package containing CLI scripts to manage a Postgres database including scripts to execute migrations, rollback migrations, seed or truncating a Postgres database.",
   "main": "src/exports.js",
   "scripts": {
@@ -27,8 +27,8 @@
     "url": "https://github.com/WilliamConnatser/pg-toolbox/issues"
   },
   "homepage": "https://github.com/WilliamConnatser/pg-toolbox#readme",
-  "devDependencies": {
+  "dependencies": {
     "dotenv": "^8.2.0",
-    "slonik": "^23.5.5"
+    "slonik": "^23.6.0"
   }
 }

@@ -1,5 +1,7 @@
-#built code
-dist/
+#unbuilt code
+src/
+#test code
+__tests__/
 
 # Logs
 logs

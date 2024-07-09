@@ -1,129 +1,63 @@
-const { createPool } = require("slonik");
-const path = require("path");
-const formatAndConsoleLog = require("./formatAndConsoleLog");
-const getMigrationsExecuted = require("./getMigrationsExecuted");
-const getToolboxFiles = require("./getToolboxFiles");
-const handleMigrationChange = require("./handleMigrationChange");
-const truncate = require("./truncate");
-const pool = createPool(process.env.PGURI);
+import path from 'path'
+import {
+  createPool,
+  DatabasePoolType,
+  DatabaseTransactionConnectionType,
+} from 'slonik'
+import getToolboxFiles from './getToolboxFiles'
+import migrate from './migrate'
+import rollback from './rollback'
+import seed from './seed'
+import truncate from './truncate'
+import { ParsedToolboxFile } from './types'
 
-const alterDatabase = async (option) => {
+const pool: DatabasePoolType = createPool(process.env.PGURI || '')
+
+/**
+ * Alter the database based on the provided option.
+ * - '--rollback' or '-rollback': Rollback the database migrations.
+ * - '--truncate' or '-truncate': Truncate the database tables.
+ * - '--migrate' or '-migrate': Migrate the database.
+ * - '--seed' or '-seed': Seed the database.
+ *
+ * @param option The operation to perform: --rollback, --truncate, --migrate, --seed
+ */
+const alterDatabase = async (option: string): Promise<void> => {
   const importToolboxFiles = getToolboxFiles(
-    path.join(process.env.PWD, process.env.PGMIGRATIONS)
-  ).map(async (fileName) => ({
+    path.join(process.env.PWD || '', process.env.PGMIGRATIONS || ''),
+  ).map(async (fileName: string) => ({
+    ...((await import(
+      path.join(process.env.PWD || '', process.env.PGMIGRATIONS || '', fileName)
+    )) as ParsedToolboxFile),
     fileName,
-    ...(await require(path.join(
-      process.env.PWD,
-      process.env.PGMIGRATIONS,
-      fileName
-    ))()),
-  }));
+  }))
 
-  Promise.all(importToolboxFiles).then((toolboxFiles) => {
-    return pool.transaction(async (transactionConnection) => {
+  const toolboxFiles = await Promise.all(importToolboxFiles)
+
+  await pool.transaction(
+    async (transactionConnection: DatabaseTransactionConnectionType) => {
       switch (option) {
-        case "--rollback":
-        case "-rollback":
-          //Iterate over toolbox files in descending alphabetical order
-          const toolboxFilesReversed = toolboxFiles.reverse();
-
-          for (let toolboxFile of toolboxFilesReversed) {
-            const { rollback, fileName } = toolboxFile;
-
-            const migrationsExecuted = await getMigrationsExecuted(
-              pool,
-              fileName
-            );
-
-            //Check if this toolbox file migration script was executed before rolling back
-            if (migrationsExecuted) {
-              formatAndConsoleLog(
-                `[pg-toolbox] Rollback: Executing rollback script in ${fileName}`,
-                rollback
-              );
-              await transactionConnection.query(rollback);
-              await handleMigrationChange(
-                pool,
-                transactionConnection,
-                fileName,
-                false
-              );
-            } else {
-              formatAndConsoleLog(
-                `Rollback: ${fileName} has not been migrated yet.`
-              );
-            }
-          }
-          break;
-        case "--truncate":
-        case "-truncate":
-          //Truncate needs to be abstracted away because it is used both independently, and also as the first step of the seeding process
-          await truncate(pool, transactionConnection, toolboxFiles);
-          break;
-        case "--migrate":
-        case "-migrate":
-          //Iterate over toolbox files in ascending alphabetical order
-          for (let toolboxFile of toolboxFiles) {
-            const { migrate, fileName } = toolboxFile;
-            const migrationsExecuted = await getMigrationsExecuted(
-              pool,
-              fileName
-            );
-
-            //Check if the toolbox file migration script was already executed before Executing them
-            if (!migrationsExecuted) {
-              formatAndConsoleLog(
-                `Migrate: Executing migration script in ${fileName}`,
-                migrate
-              );
-              await transactionConnection.query(migrate);
-              await handleMigrationChange(
-                pool,
-                transactionConnection,
-                fileName,
-                true
-              );
-            } else {
-              formatAndConsoleLog(
-                `Migrate: Migration file ${fileName} has already been executed.`
-              );
-            }
-          }
-          break;
-        case "-seed":
-        case "--seed":
-          return truncate(pool, transactionConnection, toolboxFiles).then(
-            async () => {
-              for (let toolboxFile of toolboxFiles) {
-                const { fileName, seed } = toolboxFile;
-                const migrationsExecuted = await getMigrationsExecuted(
-                  pool,
-                  fileName
-                );
-                if (migrationsExecuted) {
-                  if (!seed) {
-                    formatAndConsoleLog(
-                      `Seed: Toolbox file ${fileName} does not contain a seed script.`
-                    );
-                  } else {
-                    formatAndConsoleLog(
-                      `Seed: Executing seed script ${fileName}`,
-                      seed
-                    );
-                    await transactionConnection.query(seed);
-                  }
-                } else {
-                  formatAndConsoleLog(
-                    `Seed: ${fileName} has not been migrated yet.`
-                  );
-                }
-              }
-            }
-          );
-          break;
+        case '--rollback':
+        case '-rollback':
+          await rollback(pool, transactionConnection, toolboxFiles)
+          break
+        case '--truncate':
+        case '-truncate':
+          await truncate(pool, transactionConnection, toolboxFiles)
+          break
+        case '--migrate':
+        case '-migrate':
+          await migrate(pool, transactionConnection, toolboxFiles)
+          break
+        case '--seed':
+        case '-seed':
+          await seed(pool, transactionConnection, toolboxFiles)
+          break
+        default:
+          console.log('Unknown command')
       }
-    });
-  });
-};
+    },
+  )
+}
 
-module.exports = alterDatabase;
+export default alterDatabase

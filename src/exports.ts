@@ -1,1 +1,1 @@
-module.exports = require("slonik");
+module.exports = require('slonik')

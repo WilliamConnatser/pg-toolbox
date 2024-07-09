@@ -13,7 +13,7 @@ If you use knex and/or another ORM in all of your projects, then I would implore
 # Features
 
 - Several CLI commands to migrate, rollback, truncate, or seed your database.
-- No bloat or production dependencies. The only packages this package uses (`dotenv` and `slonik`) are development dependencies.
+- No bloat or production dependencies. The only package used (other than `slonik`) are development dependencies.
 - Ability to inject dynamic values into Toolbox files' scripts
 - Ability to dynamically build the Toolbox files' scripts
 

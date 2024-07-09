@@ -180,3 +180,9 @@ The CLI commands use the toolbox files you defined (see above) to manage your da
 - The `slonik` package is the only export of this package, and can be imported to a toolbox file like so: `const slonik = require('pg-toolbox')`
 - This export contains the entire slonik library so you can write more advanced SQL scripts using slonik's many utility functions.
 - Furthermore, toolbox files export an async function for a reason. You may perform database queries in order to inject dynamic values into your queries, or dynamically build a SQL script.
+
+# Contributing
+
+- Install Bun
+- Install Docker (optional)
+  - Rhere are some scripts to spin up or tear down a PostgreSQL database instance for testing or development

@@ -4,7 +4,11 @@
   "description": "A package containing CLI scripts to manage a Postgres database including scripts to execute migrations, rollback migrations, seed or truncating a Postgres database.",
   "main": "src/exports.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "format": "bun prettier -w src/",
+    "format:check": "bun prettier -c src/",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:up": "docker run --rm --name postgres_dev -e POSTGRES_PASSWORD=postgres -d -p 6000:5432 postgres",
+    "db:down": "docker container stop postgres_dev"
   },
   "bin": {
     "pg-toolbox": "./src/index.js"
@@ -21,14 +25,19 @@
     "rollback",
     "seed"
   ],
-  "author": "William E Connatser III",
+  "author": "William Connatser",
   "license": "SEE LICENSE IN LICENSE",
   "bugs": {
     "url": "https://github.com/WilliamConnatser/pg-toolbox/issues"
   },
   "homepage": "https://github.com/WilliamConnatser/pg-toolbox#readme",
   "dependencies": {
-    "dotenv": "^8.2.0",
+    "@types/eslint": "^8.56.10",
     "slonik": "^23.6.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.6",
+    "eslint": "^9.6.0",
+    "prettier": "^3.3.2"
   }
 }

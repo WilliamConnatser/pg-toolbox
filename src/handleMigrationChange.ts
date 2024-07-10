@@ -1,4 +1,4 @@
-const { sql } = require('slonik')
+const { sql } = require("slonik");
 
 const handleMigrationChange = async (
   pool,
@@ -15,7 +15,7 @@ const handleMigrationChange = async (
         return transactionConnection.query(
           sql`INSERT INTO pg_toolbox_migrations(name)
             VALUES(${fileName})`,
-        )
+        );
       } else {
         //Else when rolling back remove the row from the database
         return transactionConnection
@@ -28,20 +28,20 @@ const handleMigrationChange = async (
             //Check if there are anymore rows in pg_toolbox_migrations
             return transactionConnection.exists(
               sql`SELECT true FROM pg_toolbox_migrations FETCH FIRST 1 ROWS ONLY`,
-            )
+            );
           })
           .then((rowExists) => {
             if (!rowExists) {
               //If there are no more tables to rollback, then drop the pg_toolbox_migrations table
               return transactionConnection.query(
                 sql`DROP TABLE IF EXISTS pg_toolbox_migrations`,
-              )
+              );
             }
-          })
+          });
       }
     })
     .catch(async (err) => {
-      if (err.code === '42P01') {
+      if (err.code === "42P01") {
         //If the table does not exist yet, meaning no migrations have ran at all
         if (migrating) {
           //If migrating and the table does not exits, then create the table, and recursively execute handleMigrationChange
@@ -57,15 +57,15 @@ const handleMigrationChange = async (
                 transactionConnection,
                 fileName,
                 migrating,
-              )
-            })
+              );
+            });
         } else {
-          return
+          return;
         }
       } else {
-        throw err
+        throw err;
       }
-    })
-}
+    });
+};
 
-export default handleMigrationChange
+export default handleMigrationChange;

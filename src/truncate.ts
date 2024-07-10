@@ -1,7 +1,7 @@
-import { DatabasePoolType, DatabaseTransactionConnectionType } from 'slonik'
-import formatAndConsoleLog from './formatAndConsoleLog'
-import getMigrationsExecuted from './getMigrationsExecuted'
-import { ParsedToolboxFile } from './types'
+import { DatabasePoolType, DatabaseTransactionConnectionType } from "slonik";
+import formatAndLog from "./formatAndLog";
+import getMigrationsExecuted from "./getMigrationsExecuted";
+import { ToolBoxFileWithMetaData } from "./types";
 
 /**
  * Truncate tables based on the toolbox files.
@@ -17,32 +17,33 @@ import { ParsedToolboxFile } from './types'
 const truncate = async (
   pool: DatabasePoolType,
   transactionConnection: DatabaseTransactionConnectionType,
-  toolboxFiles: ParsedToolboxFile[],
+  toolboxFiles: ToolBoxFileWithMetaData[],
 ): Promise<void> => {
   // Iterate over migration files in descending alphabetical order
-  const toolboxFilesReversed = toolboxFiles.slice().reverse()
+  const toolboxFilesReversed = toolboxFiles.slice().reverse();
   for (const toolboxFile of toolboxFilesReversed) {
-    const { truncate, fileName } = toolboxFile
+    const { truncate, fileName } = toolboxFile;
 
     // Check if the toolbox file migration script was already executed before truncating
-    const migrationsExecuted = await getMigrationsExecuted(pool, fileName)
+    const migrationsExecuted = await getMigrationsExecuted(pool, fileName);
     if (migrationsExecuted) {
       if (truncate) {
-        const query = await truncate()
-        formatAndConsoleLog(
+        formatAndLog(
           `Truncate: Running truncate script in ${fileName}`,
-          query,
-        )
-        await transactionConnection.query(query)
+          truncate,
+        );
+        await transactionConnection.query(truncate);
+        formatAndLog(
+          `Truncate: Running truncate script in ${fileName}`,
+          truncate,
+        );
       } else {
-        formatAndConsoleLog(
-          `Truncate: ${fileName} does not have a truncate script.`,
-        )
+        formatAndLog(`Truncate: ${fileName} does not have a truncate script.`);
       }
     } else {
-      formatAndConsoleLog(`Truncate: ${fileName} has not been migrated yet.`)
+      formatAndLog(`Truncate: ${fileName} has not been migrated yet.`);
     }
   }
-}
+};
 
-export default truncate
+export default truncate;

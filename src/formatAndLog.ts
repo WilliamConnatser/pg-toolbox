@@ -1,4 +1,4 @@
-import { TaggedTemplateLiteralInvocationType } from 'slonik'
+import { TaggedTemplateLiteralInvocationType } from "slonik";
 
 /**
  * Format a message and log it to the console.
@@ -7,14 +7,14 @@ import { TaggedTemplateLiteralInvocationType } from 'slonik'
  * @param message - The message to log.
  * @param query - The optional SQL query to log.
  */
-const formatAndConsoleLog = (
+const formatAndLog = (
   message: string,
   query: TaggedTemplateLiteralInvocationType | null = null,
 ): void => {
   const formattedQuery = query?.sql
-    ? `\n\t${query.sql.replace(/\n/g, '\n\t')}`
-    : ''
-  console.log(`[pg-toolbox] ${message}${formattedQuery}`)
-}
+    ? `\n\t${query.sql.replace(/\n/g, "\n\t")}`
+    : "";
+  console.log(`[pg-toolbox] ${message}${formattedQuery}`);
+};
 
-export default formatAndConsoleLog
+export default formatAndLog;

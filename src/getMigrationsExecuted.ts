@@ -1,4 +1,4 @@
-import { DatabasePoolType, sql } from 'slonik'
+import { DatabasePoolType, sql } from "slonik";
 
 /**
  * Check if migrations for a given file have been executed.
@@ -17,13 +17,13 @@ const getMigrationsExecuted = async (
   try {
     const rowExists = await pool.exists(
       sql`SELECT true FROM pg_toolbox_migrations WHERE file_name = ${fileName} FETCH FIRST 1 ROWS ONLY`,
-    )
-    return rowExists
+    );
+    return rowExists;
   } catch (err: any) {
     // If no migrations have run then you will get an error: relation "pg_toolbox_migrations" does not exist
-    if (err.code === '42P01') return false
-    else throw err
+    if (err.code === "42P01") return false;
+    else throw err;
   }
-}
+};
 
-export default getMigrationsExecuted
+export default getMigrationsExecuted;

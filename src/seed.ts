@@ -1,7 +1,7 @@
-import { DatabasePoolType, DatabaseTransactionConnectionType } from 'slonik'
-import formatAndConsoleLog from './formatAndConsoleLog'
-import getMigrationsExecuted from './getMigrationsExecuted'
-import truncate from './truncate'
+import { DatabasePoolType, DatabaseTransactionConnectionType } from "slonik";
+import formatAndLog from "./formatAndLog";
+import getMigrationsExecuted from "./getMigrationsExecuted";
+import truncate from "./truncate";
 
 /**
  * Handle the seed operation.
@@ -13,23 +13,23 @@ const seed = async (
   transactionConnection: DatabaseTransactionConnectionType,
   toolboxFiles: any[],
 ): Promise<void> => {
-  await truncate(pool, transactionConnection, toolboxFiles)
+  await truncate(pool, transactionConnection, toolboxFiles);
   for (const toolboxFile of toolboxFiles) {
-    const { fileName, seed } = toolboxFile
-    const migrationsExecuted = await getMigrationsExecuted(pool, fileName)
+    const { fileName, seed } = toolboxFile;
+    const migrationsExecuted = await getMigrationsExecuted(pool, fileName);
 
     if (migrationsExecuted) {
       if (!seed) {
-        formatAndConsoleLog(
+        formatAndLog(
           `Seed: Toolbox file ${fileName} does not contain a seed script.`,
-        )
+        );
       } else {
-        formatAndConsoleLog(`Seed: Executing seed script ${fileName}`, seed)
-        await transactionConnection.query(seed)
+        formatAndLog(`Seed: Executing seed script ${fileName}`, seed);
+        await transactionConnection.query(seed);
       }
     } else {
-      formatAndConsoleLog(`Seed: ${fileName} has not been migrated yet.`)
+      formatAndLog(`Seed: ${fileName} has not been migrated yet.`);
     }
   }
-}
-export default seed
+};
+export default seed;

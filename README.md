@@ -35,9 +35,9 @@ npm install pg-toolbox -D
 yarn add pg-toolbox -D
 ```
 
-## Create an .env file in the root directory of your project
+## Create an environment variable
 
-You only need to do this in the development environment because the development dependency `dotenv` is used to read the environment variables when you are running the CLI scripts to manage your database.
+Locally, this is usually defined in an `.env` file (remember to `.gitignore`!), or it's defined in the context the script is ran if running in a pipeline.
 
 Example `.env` file:
 
@@ -185,4 +185,4 @@ The CLI commands use the toolbox files you defined (see above) to manage your da
 
 - Install Bun
 - Install Docker (optional)
-  - Rhere are some scripts to spin up or tear down a PostgreSQL database instance for testing or development
+  - There are some scripts to spin up or tear down a PostgreSQL database instance for testing or development

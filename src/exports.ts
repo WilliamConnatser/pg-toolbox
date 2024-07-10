@@ -1,1 +1,3 @@
-module.exports = require('slonik')
+import slonik from "slonik";
+
+export { slonik };

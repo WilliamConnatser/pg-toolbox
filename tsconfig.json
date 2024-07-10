@@ -43,7 +43,7 @@
     "types": ["node"] // Includes type definitions for Node.js and Jest.
   },
   "include": [
-    ".eslintrc.cjs", // ESLint configuration.
+    ".eslintrc.config.mjs", // ESLint configuration.
     "src/**/*.{ts,js,cjs,mjs}", // JavaScript & TypeScript files.
     "src/**/*.spec.{ts,js,cjs,mjs}" // JavaScript & TypeScript test files.
   ],

@@ -1,7 +1,7 @@
-import { slonik } from "pg-toolbox";
+import { sql } from "slonik";
 
 const holdingsToolBoxFile = async () => ({
-  migrate: slonik.sql`CREATE TABLE holdings (
+  migrate: sql`CREATE TABLE holdings (
     id  SERIAL PRIMARY KEY,
     day DATE NOT NULL,
     fund INTEGER REFERENCES funds (id) ON DELETE RESTRICT,
@@ -11,8 +11,8 @@ const holdingsToolBoxFile = async () => ({
     weight DECIMAL(5,2) NOT NULL,
     CONSTRAINT day_fund_company UNIQUE(day,fund,company)
   )`,
-  rollback: slonik.sql`DROP TABLE IF EXISTS holdings`,
-  truncate: slonik.sql`TRUNCATE holdings RESTART IDENTITY CASCADE`,
+  rollback: sql`DROP TABLE IF EXISTS holdings`,
+  truncate: sql`TRUNCATE holdings RESTART IDENTITY CASCADE`,
 });
 
 export default holdingsToolBoxFile;

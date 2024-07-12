@@ -8,7 +8,7 @@
     "resolveJsonModule": true, // Allows importing JSON modules.
     "moduleDetection": "force", // Forces module detection.
     "isolatedModules": true, // Compiles each file in isolation.
-    "verbatimModuleSyntax": true, // Auto-prepends "type" before type imports.
+    "verbatimModuleSyntax": false, // Auto-prepends "type" before type imports.
 
     /* Strictness */
     "strict": true, // Enables all strict type-checking options.
@@ -40,14 +40,16 @@
     "importHelpers": true, // Uses TypeScript helpers to reduce output size.
 
     /* Types */
-    "types": ["node"] // Includes type definitions for Node.js and Jest.
+    "types": ["node", "jest"] // Includes type definitions for Node.js and Jest.
   },
   "include": [
     ".eslintrc.config.mjs", // ESLint configuration.
     "src/**/*.{ts,js,cjs,mjs}", // JavaScript & TypeScript files.
-    "src/**/*.spec.{ts,js,cjs,mjs}" // JavaScript & TypeScript test files.
+    "src/**/*.spec.{ts,js,cjs,mjs}", // JavaScript & TypeScript test files.
+    "src/**/*.spec.ts" // JavaScript & TypeScript test files.
   ],
   "exclude": [
-    "node_modules" // Excludes node_modules directory.
+    "node_modules", // Excludes node_modules directory.
+    "dist" // Excludes dist directory.
   ]
 }

@@ -12,7 +12,7 @@ import truncate from "./truncate";
 const pool: DatabasePoolType = createPool(process.env.PGURI || "");
 
 /**
- * Alter the database based on the provided option.
+ * Execute a specific database operation based on the provided option.
  * - '--rollback' or '-rollback': Rollback the database migrations.
  * - '--truncate' or '-truncate': Truncate the database tables.
  * - '--migrate' or '-migrate': Migrate the database.
@@ -20,7 +20,7 @@ const pool: DatabasePoolType = createPool(process.env.PGURI || "");
  *
  * @param option The operation to perform: --rollback, --truncate, --migrate, --seed
  */
-const alterDatabase = async (option: string): Promise<void> => {
+const executeDatabaseOperation = async (option: string): Promise<void> => {
   const toolboxFiles = await importToolboxFiles();
 
   await pool.transaction(
@@ -45,8 +45,8 @@ const alterDatabase = async (option: string): Promise<void> => {
         default:
           console.log("Unknown command");
       }
-    },
+    }
   );
 };
 
-export default alterDatabase;
+export default executeDatabaseOperation;

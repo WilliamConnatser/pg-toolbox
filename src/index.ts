@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import alterDatabase from "./alterDatabase";
+import alterDatabase from "./executeDatabaseOperation";
 
 const option = process.argv[2];
 
@@ -32,7 +32,7 @@ Options:
     break;
   default:
     console.log(
-      "Invalid option provided - Execute `pg-toolbox -help` for more information.",
+      "Invalid option provided - Execute `pg-toolbox -help` for more information."
     );
     break;
 }

@@ -1,5 +1,6 @@
 import { DatabasePoolType, DatabaseTransactionConnectionType } from "slonik";
 import formatAndLog from "./formatAndLog";
+import { generateAndVerifyMigrationHash } from "./generateAndVerifyMigrationHash";
 import getMigrationsExecuted from "./getMigrationsExecuted";
 import handleMigrationChange from "./handleMigrationChange";
 import { ToolBoxFileWithMetaData } from "./types";
@@ -11,32 +12,46 @@ import { ToolBoxFileWithMetaData } from "./types";
  * - If not executed, log the action, execute the migration, update the migrations table, and log completion.
  * - If already executed, log that the migration has been skipped.
  *
- * @param pool - The database pool.
- * @param transactionConnection - The transaction connection.
- * @param toolboxFiles - The toolbox files containing migration scripts.
+ * @param {DatabasePoolType} pool - The database pool.
+ * @param {DatabaseTransactionConnectionType} transactionConnection - The transaction connection.
+ * @param {ToolBoxFileWithMetaData[]} toolboxFiles - The toolbox files containing migration scripts.
  */
 const migrate = async (
   pool: DatabasePoolType,
   transactionConnection: DatabaseTransactionConnectionType,
-  toolboxFiles: ToolBoxFileWithMetaData[]
+  toolBoxFiles: ToolBoxFileWithMetaData[]
 ): Promise<void> => {
-  for (const toolboxFile of toolboxFiles) {
-    const { migrate, fileName } = toolboxFile;
+  for (const toolBoxFile of toolBoxFiles) {
+    const { migrate, fileName } = toolBoxFile;
 
     // Check if the migration script has already been executed
-    const migrationsExecuted = await getMigrationsExecuted(pool, fileName);
+    const { migrationExecuted, existingHash } = await getMigrationsExecuted(
+      pool,
+      fileName
+    );
 
-    if (!migrationsExecuted) {
+    if (!migrationExecuted) {
+      // Generate and verify the hash of the migration
+      const currentHash = generateAndVerifyMigrationHash(
+        toolBoxFile,
+        existingHash
+      );
+
+      // Execute the migration script
       formatAndLog(
         `Migrate: Executing migration script in ${fileName}`,
         migrate
       );
-
-      // Execute the migration script
       await transactionConnection.query(migrate);
 
       // Update the migrations table to indicate the script has been executed
-      await handleMigrationChange(pool, transactionConnection, fileName, true);
+      await handleMigrationChange(
+        pool,
+        transactionConnection,
+        fileName,
+        true,
+        currentHash
+      );
 
       formatAndLog(`Migrate: Migration script completed: ${fileName}`);
     } else {

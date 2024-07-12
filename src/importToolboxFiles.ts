@@ -5,8 +5,8 @@ import { ToolBoxFile, ToolBoxFileWithMetaData } from "./types";
 /**
  * Get the list of toolbox file paths from the specified directory.
  *
- * @param dirPath - The path to the directory containing toolbox files.
- * @returns An array of toolbox file names.
+ * @param {string} dirPath - The path to the directory containing toolbox files.
+ * @returns {string} An array of toolbox file names.
  */
 const getToolboxFilePaths = (dirPath: string): string[] => {
   try {
@@ -25,7 +25,7 @@ const getToolboxFilePaths = (dirPath: string): string[] => {
  * - Imports each toolbox file dynamically.
  * - Adds the file name as metadata to each imported toolbox file.
  *
- * @returns A promise that resolves to an array of toolbox files with metadata.
+ * @returns {Promise<ToolBoxFileWithMetaData[]>} A promise that resolves to an array of toolbox files with metadata.
  */
 const importToolboxFiles = async (): Promise<ToolBoxFileWithMetaData[]> => {
   // Retrieve the list of toolbox files

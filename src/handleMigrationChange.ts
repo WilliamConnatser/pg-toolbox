@@ -52,7 +52,25 @@ const handleMigrationChange = async (
           );
         }
       } else {
-        // Else when rolling back update the applicable row in the database
+        // Else we're rolling back update the applicable row in the database
+
+        // First check to see if there are any more migrations to rollback after this rollback is made
+        const moreMigrationsToRollback = await pool.exists(
+          sql`
+          WITH specific_migration AS (
+              SELECT migrate
+              FROM pg_toolbox
+              WHERE name = ${fileName}
+          )
+          SELECT EXISTS (
+              SELECT 1
+              FROM specific_migration
+              WHERE migrate < DATE (SELECT migrate FROM specific_migration)
+          ) AS exists_result;
+        `
+        );
+
+        // Rollback the current toolbox file's migration
         return transactionConnection
           .query(
             sql`UPDATE pg_toolbox
@@ -61,15 +79,8 @@ const handleMigrationChange = async (
               WHERE name = ${fileName}`
           )
           .then(() => {
-            // Todo: Since we're not deleting the rows anymore
-            // We need to see if there were any migrations done before the one we're currently rolling back
-            // If so, then we need to continue (do this before setting migrate to null)
-            // Write a join query where the name is the same but the date stored in migrate is before the current file's date
-
-            // Check if there are any more rows in pg_toolbox_migrations
-            return transactionConnection.exists(
-              sql`SELECT true FROM pg_toolbox FETCH FIRST 1 ROWS ONLY`
-            );
+            // Inform the caller if there are any more migrations to rollback
+            return moreMigrationsToRollback;
           });
       }
     })

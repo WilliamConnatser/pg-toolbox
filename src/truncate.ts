@@ -10,14 +10,14 @@ import { ToolBoxFileWithMetaData } from "./types";
  * - If the migration was executed and a truncate script exists, execute the truncate script.
  * - Log the process of truncation for each file.
  *
- * @param pool - The database pool.
- * @param transactionConnection - The transaction connection.
- * @param toolboxFiles - The toolbox files containing truncate scripts.
+ * @param {DatabasePoolType} pool - The database pool.
+ * @param {DatabaseTransactionConnectionType} transactionConnection - The transaction connection.
+ * @param {ToolBoxFileWithMetaData[]} toolboxFiles - The toolbox files containing truncate scripts.
  */
 const truncate = async (
   pool: DatabasePoolType,
   transactionConnection: DatabaseTransactionConnectionType,
-  toolboxFiles: ToolBoxFileWithMetaData[],
+  toolboxFiles: ToolBoxFileWithMetaData[]
 ): Promise<void> => {
   // Iterate over migration files in descending alphabetical order
   const toolboxFilesReversed = toolboxFiles.slice().reverse();
@@ -30,12 +30,12 @@ const truncate = async (
       if (truncate) {
         formatAndLog(
           `Truncate: Running truncate script in ${fileName}`,
-          truncate,
+          truncate
         );
         await transactionConnection.query(truncate);
         formatAndLog(
           `Truncate: Running truncate script in ${fileName}`,
-          truncate,
+          truncate
         );
       } else {
         formatAndLog(`Truncate: ${fileName} does not have a truncate script.`);

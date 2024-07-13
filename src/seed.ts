@@ -13,9 +13,9 @@ import { ToolBoxFileWithMetaData } from "./types";
  * - If executed but no seed script exists, log that the seed is skipped.
  * - If not executed, log that the seed has been skipped.
  *
- * @param pool - The database pool.
- * @param transactionConnection - The transaction connection.
- * @param toolboxFiles - The toolbox files containing seed scripts.
+ * @param {DatabasePoolType} pool - The database pool.
+ * @param {DatabaseTransactionConnectionType} transactionConnection - The transaction connection.
+ * @param {ToolBoxFileWithMetaData[]} toolboxFiles - The toolbox files containing seed scripts.
  */
 const seed = async (
   pool: DatabasePoolType,

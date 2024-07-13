@@ -6,78 +6,87 @@ import {
 
 /**
  * Handle changes to the migration table after executing a migration or rollback.
- * - If migrating, create a new row for this file in the `pg_toolbox_migrations` table.
- * - If rolling back, remove the row for this file from the `pg_toolbox_migrations` table.
- * - If there are no more rows in the `pg_toolbox_migrations` table after rollback, drop the table.
- * - If the table does not exist yet, create it and recursively execute the function.
+ * - Create the metadata table if it does not exist yet
+ * - If migrating, create a new row for this file in the `pg_toolbox` table.
+ * - If rolling back, update the existing row for this file from the `pg_toolbox` table.
  *
- * @param pool - The database pool.
- * @param transactionConnection - The transaction connection.
- * @param fileName - The name of the migration file.
- * @param migrating - Whether the migration was executed (true) or rolled back (false).
- * @returns A promise that resolves when the operation is complete.
+ * @param {DatabasePoolType} pool The database pool.
+ * @param {DatabaseTransactionConnectionType} transactionConnection The transaction connection.
+ * @param {string} fileName The name of the migration file.
+ * @param {boolean} migrating Indicates whether we're migrating or rolling back
+ * @param {string} hash The hash of the migrate and rollback queries
+ * @returns {void} A promise that resolves when the operation is complete.
  */
 const handleMigrationChange = async (
   pool: DatabasePoolType,
   transactionConnection: DatabaseTransactionConnectionType,
   fileName: string,
-  migrating: boolean
+  migrating: boolean,
+  hash: string
 ): Promise<void> => {
   await pool
-    .exists(sql`SELECT true FROM pg_toolbox_migrations FETCH FIRST 1 ROWS ONLY`)
-    .then(() => {
-      // The table exists already so we need to update it
-      if (migrating) {
-        // If migrating then create a new row for this table in the database
-        return transactionConnection.query(
-          sql`INSERT INTO pg_toolbox_migrations(name)
-            VALUES(${fileName})`
+    .query(
+      sql`
+        CREATE TABLE IF NOT EXISTS pg_toolbox (
+          name TEXT PRIMARY KEY, -- The name of the toolbox file
+          hash TEXT NOT NULL, -- Hash of the toolbox migrate and rollback scripts concatenated
+          migrate DATE DEFAULT NULL, -- Date when the migrate operation was completed
+          rollback DATE DEFAULT NULL, -- Date when the rollback operation was completed
+          truncate DATE DEFAULT NULL, -- Date when the truncate operation was completed
+          seed DATE DEFAULT NULL -- Date when the seed operation was completed
         );
+      )`
+    )
+    .then(async () => {
+      // The metadata table exists already so we need to update it
+      if (migrating) {
+        if (hash) {
+          // If migrating then create a new row for this table in the database
+          return transactionConnection.query(
+            sql`INSERT INTO pg_toolbox(name, hash, migrate)
+            VALUES(${fileName}, ${hash}, CURRENT_DATE)`
+          );
+        } else {
+          throw new Error(
+            "A hash of the migrate and rollback queries must be provided (they are immutable)"
+          );
+        }
       } else {
-        // Else when rolling back remove the row from the database
+        // Else we're rolling back update the applicable row in the database
+
+        // First check to see if there are any more migrations to rollback after this rollback is made
+        const moreMigrationsToRollback = await pool.exists(
+          sql`
+          WITH specific_migration AS (
+              SELECT migrate
+              FROM pg_toolbox
+              WHERE name = ${fileName}
+          )
+          SELECT EXISTS (
+              SELECT 1
+              FROM specific_migration
+              WHERE migrate < DATE (SELECT migrate FROM specific_migration)
+          ) AS exists_result;
+        `
+        );
+
+        // Rollback the current toolbox file's migration
         return transactionConnection
           .query(
-            sql`DELETE FROM pg_toolbox_migrations
-            WHERE name = ${fileName}`
+            sql`UPDATE pg_toolbox
+              SET migrate = NULL,
+                  rollback = CURRENT_DATE
+              WHERE name = ${fileName}`
           )
           .then(() => {
-            // Check if there are any more rows in pg_toolbox_migrations
-            return transactionConnection.exists(
-              sql`SELECT true FROM pg_toolbox_migrations FETCH FIRST 1 ROWS ONLY`
-            );
-          })
-          .then((rowExists) => {
-            if (!rowExists) {
-              // If there are no more tables to rollback, then drop the pg_toolbox_migrations table
-              return transactionConnection.query(
-                sql`DROP TABLE IF EXISTS pg_toolbox_migrations`
-              );
-            }
+            // Inform the caller if there are any more migrations to rollback
+            return moreMigrationsToRollback;
           });
       }
     })
     .catch(async (err) => {
-      if (err.code === "42P01") {
-        // If the table does not exist yet, meaning no migrations have run at all
-        if (migrating) {
-          // If migrating and the table does not exist, then create the table, and recursively execute handleMigrationChange
-          await pool.query(
-            sql`CREATE TABLE pg_toolbox_migrations (
-              name VARCHAR(50) PRIMARY KEY
-            )`
-          );
-          return handleMigrationChange(
-            pool,
-            transactionConnection,
-            fileName,
-            migrating
-          );
-        } else {
-          return;
-        }
-      } else {
-        throw err;
-      }
+      // An unexpected error occurred
+      throw err;
     });
 };
 

@@ -14,10 +14,10 @@ switch (option) {
 
 Options:
   --help (I guess you figured this one out!)
-  --migrate (Execute migration scripts which have not already been executed)
-  --rollback (Execute rollback scripts for migrations which have already been executed)
-  --seed (Execute seed scripts for migrations which have already been executed)
-  --truncate (Execute truncate scripts for migrations which have already been executed)
+  --migrate (Execute migration scripts which have not already been applied)
+  --rollback (Execute rollback scripts for migrations which have already been applied)
+  --seed (Execute seed scripts for migrations which have already been applied)
+  --truncate (Execute truncate scripts for migrations which have already been applied)
   `);
     break;
   case "--migrate":

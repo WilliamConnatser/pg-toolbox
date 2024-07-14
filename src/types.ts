@@ -10,7 +10,7 @@ export type UnparsedToolBoxFile = () => Promise<ToolBoxFile>;
 export type ToolBoxFile = {
   /**
    * A `slonik` SQL query for migrating the database.
-   * This query is executed when the `migrate` command is run.
+   * This query is applied when the `migrate` command is run.
    *
    * @example
    * sql`CREATE TABLE example (id SERIAL PRIMARY KEY, name TEXT)`
@@ -19,7 +19,7 @@ export type ToolBoxFile = {
 
   /**
    * AA `slonik` SQL query for rolling back the migration.
-   * This query is executed when the `rollback` command is run.
+   * This query is applied when the `rollback` command is run.
    *
    * @example
    * sql`DROP TABLE IF EXISTS example`
@@ -28,7 +28,7 @@ export type ToolBoxFile = {
 
   /**
    * A `slonik` SQL query for truncating the tables.
-   * This query is executed when the `truncate` command is run.
+   * This query is applied when the `truncate` command is run.
    * This property is optional.
    *
    * @example
@@ -38,7 +38,7 @@ export type ToolBoxFile = {
 
   /**
    * A `slonik` SQL query for seeding the database.
-   * This query is executed when the `seed` command is run.
+   * This query is applied when the `seed` command is run.
    * This property is optional.
    *
    * @example
@@ -48,3 +48,5 @@ export type ToolBoxFile = {
 };
 
 export type ToolBoxFileWithMetaData = ToolBoxFile & { fileName: string };
+
+export type OperationType = "migrate" | "rollback" | "seed" | "truncate";

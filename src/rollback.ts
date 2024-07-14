@@ -1,16 +1,15 @@
 import { DatabasePoolType, DatabaseTransactionConnectionType } from "slonik";
 import { ToolBoxFileWithMetaData } from "../dist/types";
 import formatAndLog from "./formatAndLog";
-import { generateAndVerifyMigrationHash } from "./generateAndVerifyMigrationHash";
-import getMigrationsExecuted from "./getMigrationsExecuted";
 import handleMigrationChange from "./handleMigrationChange";
+import haveOperationsBeenApplied from "./haveOperationsBeenApplied";
 
 /**
  * Handle the rollback operation.
  * - Iterate over the toolbox files in reverse order to process rollbacks.
- * - Check if the migration has already been executed.
- * - If executed, log the action, execute the rollback, update the migrations table, and log completion.
- * - If not executed, log that the rollback has been skipped.
+ * - Check if the migration has already been applied.
+ * - If applied, log the action, execute the rollback, update the migrations table, and log completion.
+ * - If not applied, log that the rollback has been skipped.
  *
  * @param {DatabasePoolType} pool - The database pool.
  * @param {DatabaseTransactionConnectionType} transactionConnection - The transaction connection.
@@ -27,19 +26,14 @@ const rollback = async (
   for (const toolBoxFile of toolboxFilesReversed) {
     const { rollback, fileName } = toolBoxFile;
 
-    // Check if the migration script has already been executed
-    const { migrationExecuted, existingHash } = await getMigrationsExecuted(
+    // Check if the migration script has already been applied
+    const { operationApplied, existingHash } = await haveOperationsBeenApplied(
       pool,
-      fileName
+      fileName,
+      "migrate"
     );
 
-    if (migrationExecuted) {
-      // Generate and verify the hash of the migration
-      const currentHash = generateAndVerifyMigrationHash(
-        toolBoxFile,
-        existingHash
-      );
-
+    if (operationApplied && existingHash) {
       formatAndLog(
         `[pg-toolbox] Rollback: Executing rollback script in ${fileName}`,
         rollback
@@ -54,7 +48,7 @@ const rollback = async (
         transactionConnection,
         fileName,
         false,
-        currentHash
+        existingHash
       );
     } else {
       formatAndLog(`Rollback: ${fileName} has not been migrated yet.`);

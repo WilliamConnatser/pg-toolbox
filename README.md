@@ -21,7 +21,7 @@ If you use an ORM or query builder in all of your projects, then I would implore
 
 ## Install the NPM Package
 
-pg-toolbox should be installed as a development dependency so no bloat is added to your app. All of pg-toolboxs's CLI scripts would usually only be executed in a development environment or a deployment pipeline.
+pg-toolbox should be installed as a development dependency so no bloat is added to your app. All of pg-toolboxs's CLI scripts would usually only be applied in a development environment or a deployment pipeline.
 
 Depending on what package manager you use, run one of the following commands:
 
@@ -45,7 +45,7 @@ PGURI=postgres://user:pass@host:port_number/database
 
 - Toolbox files are consumed by the scripts which run after executing the CLI commands.
 - All toolbox files inside the pg-toolbox folder are consumed by the CLI commands. The filepath from the root folder of your project to the folder containing the toolbox files is defined by the PGMIGRATIONS environment variable.
-- All scripts executed by the CLI commands are executed in alphabetical order (ascending when migrating and seeding, or descending when truncating and rolling back).
+- All scripts applied by the CLI commands are applied in alphabetical order (ascending when migrating and seeding, or descending when truncating and rolling back).
 - Toolbox files must export an async function which returns an object literal.
 - The object literal should contain the following keys: `migrate`, `rollback`, `truncate`, and `seed`.
 - Each value of the object is a `slonik` query wrapped in backticks, and preceded by a sql template tag which can be imported like so: `const {sql} = require('pg-toolbox')`
@@ -63,23 +63,36 @@ The CLI commands use the toolbox files you defined (see above) to manage your da
 
 - Executes migration scripts in **ascending alphabetical order**
 - Skips any migrations which have already been ran
-- A table named `pg_toolbox_migrations` is automatically created (and updated) to keep track of which migrations have already been executed.
+- A table named `pg_toolbox_migrations` is automatically created (and updated) to keep track of which migrations have already been applied.
 
 ## npx pg-toolbox --rollback
 
 - Executes rollback scripts in **descending alphabetical order**
-- Each toolbox file's rollback script is only ran if the migration script for that file was already executed.
+- Each toolbox file's rollback script is only ran if the migration script for that file was already applied.
 - The table named `pg_toolbox_migrations` which keeps track of migrations is automatically dropped after all rollback scripts have been processed.
 
 ## npx pg-toolbox --truncate
 
 - Executes truncate scripts in **descending alphabetical order**
-- Each toolbox file's truncate script is only ran if the migration script for that file was already executed.
+- Each toolbox file's truncate script is only ran if the migration script for that file was already applied.
 
 ## npx pg-toolbox --seed
 
 - Executes seed scripts in **ascending alphabetical order**
-- Each toolbox file's seed script is only ran if the migration script for that file was already executed.
+- Each toolbox file's seed script is only ran if the migration script for that file was already applied.
+
+# Common Options for All CLI Operations
+
+All scripts (migrate, rollback, truncate, and seed) also support the following options:
+
+Apply the next pending operation: `pg-toolbox <operation>`
+Apply all pending operations: `pg-toolbox <operation> --all`
+Apply operation up to a specific version: `pg-toolbox <operation> --to <FileName>`
+Apply a specific number of operations: `pg-toolbox <operation> --steps <number>`
+Apply a specific operation: `pg-toolbox <operation> --only <fileName>`
+Undo the most recent operation:`pg-toolbox <operation> undo`
+
+> > > > > > > Stashed changes
 
 ## Advanced Usage
 

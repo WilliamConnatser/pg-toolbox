@@ -1,6 +1,6 @@
 import { DatabasePoolType, DatabaseTransactionConnectionType } from "slonik";
 import formatAndLog from "./formatAndLog";
-import getMigrationsExecuted from "./getMigrationsExecuted";
+import getMigrationsApplied from "./haveOperationsBeenApplied";
 import truncate from "./truncate";
 import { ToolBoxFileWithMetaData } from "./types";
 
@@ -8,10 +8,10 @@ import { ToolBoxFileWithMetaData } from "./types";
  * Handle the seed operation.
  * - Truncate the database tables before seeding.
  * - Iterate over the toolbox files to process seeds.
- * - Check if the migration has already been executed.
- * - If executed and seed script exists, execute the seed script.
- * - If executed but no seed script exists, log that the seed is skipped.
- * - If not executed, log that the seed has been skipped.
+ * - Check if the migration has already been applied.
+ * - If applied and seed script exists, execute the seed script.
+ * - If applied but no seed script exists, log that the seed is skipped.
+ * - If not applied, log that the seed has been skipped.
  *
  * @param {DatabasePoolType} pool - The database pool.
  * @param {DatabaseTransactionConnectionType} transactionConnection - The transaction connection.
@@ -28,10 +28,14 @@ const seed = async (
   for (const toolboxFile of toolboxFiles) {
     const { fileName, seed } = toolboxFile;
 
-    // Check if the migration script has already been executed
-    const migrationsExecuted = await getMigrationsExecuted(pool, fileName);
+    // Check if the migration script has already been applied
+    const { operationApplied } = await getMigrationsApplied(
+      pool,
+      fileName,
+      "seed"
+    );
 
-    if (migrationsExecuted) {
+    if (operationApplied) {
       if (!seed) {
         formatAndLog(
           `Seed: Toolbox file ${fileName} does not contain a seed script.`

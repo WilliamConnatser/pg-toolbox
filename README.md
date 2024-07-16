@@ -43,15 +43,15 @@ PGURI=postgres://user:pass@host:port_number/database
 
 ## Create your toolbox files
 
-- Toolbox files are consumed by the scripts which run after executing the CLI commands.
+- Toolbox files are user-defined queries that define each step of all functionality migrate, rollback, seed, and truncate. Each of which can be defined as a single Slonik Postgres query or an array of Slonik Postgres queries (the query array's order is respected).
 - All toolbox files inside the pg-toolbox folder are consumed by the CLI commands. The filepath from the root folder of your project to the folder containing the toolbox files is defined by the PGMIGRATIONS environment variable.
-- All scripts applied by the CLI commands are applied in alphabetical order (ascending when migrating and seeding, or descending when truncating and rolling back).
+- All scripts applied by the CLI commands are applied in the order the operations have previously been ran, falling back to alphabetical order for new scripts which are being ran (ascending when migrating and seeding, or descending when truncating and rolling back).
 - Toolbox files must export an async function which returns an object literal.
-- The object literal should contain the following keys: `migrate`, `rollback`, `truncate`, and `seed`.
-- Each value of the object is a `slonik` query wrapped in backticks, and preceded by a sql template tag which can be imported like so: `const {sql} = require('pg-toolbox')`
-- The only optional keys of this object are `seed` and `truncate`- `migrate` and `rollback` are mandatory.
-- The queries defined for the `migrate` and `rollback` actions are immutable so once they've been ran once they can not be changed. The hash is saved in the toolbox metadata table the first time a migration is ran.
-- You may write whatever `async` logic in the function which returns this to build dynamic queries, but keep in mind that the migrate and rollback queries need to be immutable. This functionality is more meant to be leveraged when building a script to seed the database.
+- The object literal mat contain the following keys: migrate, rollback, truncate, and seed. All properties are optional, so if you need to create a new seed script and/or truncate script but don't need to make any migrations or rollbacks you may define each operation independently, or use each one all at once (whichever makes sense to your use-case for creating a new Toolbox file.)
+- Each value of all object properties are SQL query strings defined in between backticks, and preceded by a sql template tag imported from `slonik`. See Slonik's documentation for instructions on how to write the queries themselves. There are many utilities available.
+  - Alteratively, the object property can be an array of the same object which allows you to create a script which contains multiple queries that are always ran in order.
+- The queries defined for the migrate and rollback actions are immutable so once they've been ran once they can not be changed. The hash is saved in the toolbox metadata table the first time a migration is ran.
+- You may write whatever async logic in the function which returns this to build dynamic queries, but keep in mind that the migrate and rollback queries need to be immutable. This functionality is more meant to be leveraged when building a script to seed the database.
 - See the Slonik Documentation to discover many utility functions for advanced query building.
 - There are several example toolbox files towards the end of this README and also [here](src/test/migrations/).
 
@@ -63,13 +63,13 @@ The CLI commands use the toolbox files you defined (see above) to manage your da
 
 - Executes migration scripts in **ascending alphabetical order**
 - Skips any migrations which have already been ran
-- A table named `pg_toolbox_migrations` is automatically created (and updated) to keep track of which migrations have already been applied.
+- A table named `pg_toolbox` is automatically created (and updated) to keep track of which migrations have already been applied.
 
 ## npx pg-toolbox --rollback
 
 - Executes rollback scripts in **descending alphabetical order**
 - Each toolbox file's rollback script is only ran if the migration script for that file was already applied.
-- The table named `pg_toolbox_migrations` which keeps track of migrations is automatically dropped after all rollback scripts have been processed.
+- The table named `pg_toolbox` which keeps track of migrations is automatically dropped after all rollback scripts have been processed.
 
 ## npx pg-toolbox --truncate
 
@@ -106,18 +106,19 @@ Undo the most recent operation:`pg-toolbox <operation> undo`
 ### `/db/pg-toolbox/1-funds.js`
 
 ```
+
 const { sql } = require("pg-toolbox");
 
 module.exports = async () => ({
-  migrate: sql`CREATE TABLE funds (
+migrate: sql`CREATE TABLE funds (
       id  SERIAL PRIMARY KEY,
       name VARCHAR(50) NOT NULL UNIQUE,
       ticker  VARCHAR(5) NOT NULL UNIQUE,
       url VARCHAR(150) NOT NULL UNIQUE
     )`,
-  rollback: sql`DROP TABLE IF EXISTS funds`,
-  truncate: sql`TRUNCATE funds RESTART IDENTITY CASCADE`,
-  seed: sql`INSERT INTO funds (name, ticker, url)
+rollback: sql`DROP TABLE IF EXISTS funds`,
+truncate: sql`TRUNCATE funds RESTART IDENTITY CASCADE`,
+seed: sql`INSERT INTO funds (name, ticker, url)
   SELECT *
   FROM ${sql.unnest(
     [
@@ -150,15 +151,17 @@ module.exports = async () => ({
     ["varchar", "varchar", "varchar"]
   )}`,
 });
+
 ```
 
 ### `/db/pg-toolbox/2-companies.js`
 
 ```
+
 const { sql } = require("pg-toolbox");
 
 module.exports = async () => ({
-  migrate: sql`CREATE TABLE companies (
+migrate: sql`CREATE TABLE companies (
     id  SERIAL PRIMARY KEY,
     given_ticker  VARCHAR(50) UNIQUE,
     readable_ticker  VARCHAR(6) UNIQUE,
@@ -166,8 +169,8 @@ module.exports = async () => ({
     given_name VARCHAR(50) NOT NULL UNIQUE,
     readable_name VARCHAR(50) UNIQUE
   )`,
-  rollback: sql`DROP TABLE IF EXISTS companies`,
-  truncate: sql`TRUNCATE companies RESTART IDENTITY CASCADE`,
+rollback: sql`DROP TABLE IF EXISTS companies`,
+truncate: sql`TRUNCATE companies RESTART IDENTITY CASCADE`,
 });
 
 ```
@@ -175,10 +178,11 @@ module.exports = async () => ({
 ### `/db/pg-toolbox/3-holdings.js`
 
 ```
+
 const { sql } = require("pg-toolbox");
 
 module.exports = async () => ({
-  migrate: sql`CREATE TABLE holdings (
+migrate: sql`CREATE TABLE holdings (
     id  SERIAL PRIMARY KEY,
     day DATE NOT NULL,
     fund INTEGER REFERENCES funds (id) ON DELETE RESTRICT,
@@ -188,9 +192,10 @@ module.exports = async () => ({
     weight DECIMAL(5,2) NOT NULL,
     CONSTRAINT day_fund_company UNIQUE(day,fund,company)
   )`,
-  rollback: sql`DROP TABLE IF EXISTS holdings`,
-  truncate: sql`TRUNCATE holdings RESTART IDENTITY CASCADE`,
+rollback: sql`DROP TABLE IF EXISTS holdings`,
+truncate: sql`TRUNCATE holdings RESTART IDENTITY CASCADE`,
 });
+
 ```
 
 # Contributing
@@ -219,3 +224,7 @@ module.exports = async () => ({
 - **Auditing and Compliance**: Facilitates auditing and compliance processes by maintaining an unalterable history of database changes.
 - **Simplified Debugging**: Easier to trace and debug issues by examining the sequence of applied migrations.
 - **Collaboration**: Reduces the risk of conflicts and confusion among team members, as migrations are not altered once created.
+
+```
+
+```

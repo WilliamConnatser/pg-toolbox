@@ -1,6 +1,7 @@
 import { DatabasePoolType, DatabaseTransactionConnectionType } from "slonik";
 import { ToolBoxFileWithMetaData } from "../dist/types";
 import formatAndLog from "./formatAndLog";
+import { generateAndVerifyMigrationHash } from "./generateAndVerifyMigrationHash";
 import handleMigrationChange from "./handleMigrationChange";
 import haveOperationsBeenApplied from "./haveOperationsBeenApplied";
 
@@ -20,7 +21,7 @@ const rollback = async (
   transactionConnection: DatabaseTransactionConnectionType,
   toolBoxFiles: ToolBoxFileWithMetaData[]
 ): Promise<void> => {
-  // Iterate over migration files in descending alphabetical order
+  // Todo: I need to get these in reverse order they were migrated, then reverse alphabetical order via the metadata table
   const toolboxFilesReversed = toolBoxFiles.reverse();
 
   for (const toolBoxFile of toolboxFilesReversed) {
@@ -33,25 +34,36 @@ const rollback = async (
       "migrate"
     );
 
-    if (operationApplied && existingHash) {
+    if (operationApplied && existingHash && rollback) {
+      let rollbackQueries = Array.isArray(rollback) ? rollback : [rollback];
+      for (let query of rollbackQueries) {
+        // Verify the migrate & rollback query (or scripts) hash
+        generateAndVerifyMigrationHash(toolBoxFile, existingHash);
+
+        // Generate and verify the hash of the migration
+        formatAndLog(
+          `[pg-toolbox] Rollback: Executing rollback script in ${fileName}`,
+          query
+        );
+
+        // Execute the rollback script
+        await transactionConnection.query(query);
+
+        // Update the migrations table to indicate the script has been rolled back
+        await handleMigrationChange(
+          pool,
+          transactionConnection,
+          fileName,
+          false,
+          existingHash
+        );
+      }
+    } else if (!operationApplied && !existingHash && rollback) {
       formatAndLog(
-        `[pg-toolbox] Rollback: Executing rollback script in ${fileName}`,
-        rollback
+        `Rollback: ${fileName} migration script has not been migrated yet.`
       );
-
-      // Execute the rollback script
-      await transactionConnection.query(rollback);
-
-      // Update the migrations table to indicate the script has been rolled back
-      await handleMigrationChange(
-        pool,
-        transactionConnection,
-        fileName,
-        false,
-        existingHash
-      );
-    } else {
-      formatAndLog(`Rollback: ${fileName} has not been migrated yet.`);
+    } else if (!rollback) {
+      formatAndLog(`Rollback: ${fileName} has no migration scripts`);
     }
   }
 };

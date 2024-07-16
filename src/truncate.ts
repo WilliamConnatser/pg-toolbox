@@ -19,33 +19,31 @@ const truncate = async (
   transactionConnection: DatabaseTransactionConnectionType,
   toolboxFiles: ToolBoxFileWithMetaData[]
 ): Promise<void> => {
-  // Iterate over migration files in descending alphabetical order
+  // Todo: do these in reverse order they were seeded
+  // Iterate over toolbox files containing the truncate scrips in descending alphabetical order
   const toolboxFilesReversed = toolboxFiles.slice().reverse();
   for (const toolboxFile of toolboxFilesReversed) {
     const { truncate, fileName } = toolboxFile;
 
-    // Check if the toolbox file migration script was already applied before truncating
+    // Check if the toolbox file seed script was already applied before truncating
     const { operationApplied } = await haveOperationsBeenApplied(
       pool,
       fileName,
       "truncate"
     );
-    if (operationApplied) {
-      if (truncate) {
-        formatAndLog(
-          `Truncate: Running truncate script in ${fileName}`,
-          truncate
-        );
-        await transactionConnection.query(truncate);
-        formatAndLog(
-          `Truncate: Running truncate script in ${fileName}`,
-          truncate
-        );
-      } else {
-        formatAndLog(`Truncate: ${fileName} does not have a truncate script.`);
+    if (!truncate) {
+      formatAndLog(
+        `Seed: Toolbox file ${fileName} does not contain a seed script.`
+      );
+    } else if (truncate && !operationApplied) {
+      let truncateQueries = Array.isArray(truncate) ? truncate : [truncate];
+      for (let query of truncateQueries) {
+        formatAndLog(`Truncate: Running truncate script in ${fileName}`, query);
+        await transactionConnection.query(query);
+        formatAndLog(`Truncate: Running truncate script in ${fileName}`, query);
       }
-    } else {
-      formatAndLog(`Truncate: ${fileName} has not been migrated yet.`);
+    } else if (truncate && operationApplied) {
+      formatAndLog(`Truncate: ${fileName} has already been ran.`);
     }
   }
 };

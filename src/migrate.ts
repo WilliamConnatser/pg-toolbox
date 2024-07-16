@@ -21,6 +21,9 @@ const migrate = async (
   transactionConnection: DatabaseTransactionConnectionType,
   toolBoxFiles: ToolBoxFileWithMetaData[]
 ): Promise<void> => {
+  // Todo: I need to order this by:
+  // 1. migrations already ran by ascending timestamp
+  // 2. then all new migrations by alphabetical order
   for (const toolBoxFile of toolBoxFiles) {
     const { migrate, fileName } = toolBoxFile;
 
@@ -31,34 +34,40 @@ const migrate = async (
       "migrate"
     );
 
-    if (!operationApplied) {
+    // If the migration query or script has not been ran yet, and it exists then we run it
+    if (!operationApplied && migrate) {
       // Generate and verify the hash of the migration
       const currentHash = generateAndVerifyMigrationHash(
         toolBoxFile,
         existingHash
       );
 
-      // Execute the migration script
-      formatAndLog(
-        `Migrate: Executing migration script in ${fileName}`,
-        migrate
-      );
-      await transactionConnection.query(migrate);
+      let migrationQueries = Array.isArray(migrate) ? migrate : [migrate];
+      for (let query of migrationQueries) {
+        // Execute the migration script
+        formatAndLog(
+          `Migrate: Executing migration script in ${fileName}`,
+          query
+        );
+        await transactionConnection.query(query);
 
-      // Update the migrations table to indicate the script has been applied
-      await handleMigrationChange(
-        pool,
-        transactionConnection,
-        fileName,
-        true,
-        currentHash
-      );
+        // Update the migrations table to indicate the script has been applied
+        await handleMigrationChange(
+          pool,
+          transactionConnection,
+          fileName,
+          true,
+          currentHash
+        );
 
-      formatAndLog(`Migrate: Migration script completed: ${fileName}`);
-    } else {
+        formatAndLog(`Migrate: Migration script completed: ${fileName}`);
+      }
+    } else if (migrate && operationApplied) {
       formatAndLog(
         `Migrate: Migration file ${fileName} has already been applied.`
       );
+    } else if (!migrate) {
+      formatAndLog(`Migrate: No migration query (or script) in ${fileName}.`);
     }
   }
 };

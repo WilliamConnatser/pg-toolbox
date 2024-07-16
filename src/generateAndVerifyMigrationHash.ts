@@ -16,9 +16,26 @@ export const generateAndVerifyMigrationHash = (
   toolBoxFile: ToolBoxFile | ToolBoxFileWithMetaData,
   existingHash?: string
 ): string => {
+  let migrateQuery: string = "";
+  let rollbackQuery: string = "";
+
   // Extract the SQL queries for migrate and rollback from the toolbox file.
-  const migrateQuery = toolBoxFile.migrate.sql;
-  const rollbackQuery = toolBoxFile.rollback.sql;
+  if (Array.isArray(toolBoxFile.migrate)) {
+    migrateQuery = Array.from(toolBoxFile.migrate).reduce(
+      (prev, curr) => prev + curr.sql,
+      ""
+    );
+  } else if (toolBoxFile.migrate) {
+    migrateQuery = toolBoxFile.migrate.sql;
+  }
+  if (Array.isArray(toolBoxFile.rollback)) {
+    rollbackQuery = Array.from(toolBoxFile.rollback).reduce(
+      (prev, curr) => prev + curr.sql,
+      ""
+    );
+  } else if (toolBoxFile.rollback) {
+    rollbackQuery = toolBoxFile.rollback.sql;
+  }
 
   // Concatenate the migrate and rollback queries into a single string.
   const concatenatedQueries = `${migrateQuery};${rollbackQuery}`;
